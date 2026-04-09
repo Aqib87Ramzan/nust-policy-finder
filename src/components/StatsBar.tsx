@@ -1,4 +1,4 @@
-import { Database, Clock, Filter, FileText, BarChart3 } from "lucide-react";
+import { Database, Clock, Filter, BarChart3 } from "lucide-react";
 import type { RetrievalMethod } from "@/hooks/useLSH";
 
 interface StatsBarProps {
@@ -6,25 +6,36 @@ interface StatsBarProps {
   candidateCount: number;
   lshTimeMs: number;
   tfidfTimeMs: number;
+  minhashTimeMs: number;
   hasSearched: boolean;
   method: RetrievalMethod;
 }
 
-const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, hasSearched, method }: StatsBarProps) => {
+const methodLabel: Record<RetrievalMethod, string> = {
+  lsh: "LSH",
+  tfidf: "TF-IDF",
+  minhash: "MinHash",
+};
+
+const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, minhashTimeMs, hasSearched, method }: StatsBarProps) => {
   if (!hasSearched) return null;
 
-  const stats = method === "lsh"
-    ? [
-        { icon: Database, label: "Total Chunks", value: totalDocs },
-        { icon: Filter, label: "LSH Candidates", value: candidateCount },
-        { icon: Clock, label: "LSH Time", value: `${lshTimeMs.toFixed(2)} ms` },
-        { icon: BarChart3, label: "Pruned", value: `${((1 - candidateCount / totalDocs) * 100).toFixed(0)}%` },
-      ]
-    : [
-        { icon: Database, label: "Total Chunks", value: totalDocs },
-        { icon: Clock, label: "TF-IDF Time", value: `${tfidfTimeMs.toFixed(2)} ms` },
-        { icon: BarChart3, label: "Compared", value: `${totalDocs} docs` },
-      ];
+  const timeMap: Record<RetrievalMethod, number> = { lsh: lshTimeMs, tfidf: tfidfTimeMs, minhash: minhashTimeMs };
+
+  const stats = [
+    { icon: Database, label: "Chunks", value: String(totalDocs) },
+    { icon: Clock, label: `${methodLabel[method]} Time`, value: `${timeMap[method].toFixed(2)} ms` },
+  ];
+
+  if (method === "lsh") {
+    stats.push(
+      { icon: Filter, label: "LSH Candidates", value: String(candidateCount) },
+      { icon: BarChart3, label: "Pruned", value: `${((1 - candidateCount / totalDocs) * 100).toFixed(0)}%` },
+    );
+  }
+
+  // Comparison times
+  const others = (["lsh", "tfidf", "minhash"] as const).filter((m) => m !== method);
 
   return (
     <div className="animate-fade-in flex flex-wrap justify-center gap-3 text-sm">
@@ -32,17 +43,16 @@ const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, hasSearch
         <div key={label} className="flex items-center gap-2 rounded-md bg-card border border-border px-3 py-2 shadow-sm">
           <Icon className="h-4 w-4 text-primary" />
           <span className="text-muted-foreground">{label}:</span>
-          <strong className="text-foreground font-mono">{String(value)}</strong>
+          <strong className="text-foreground font-mono">{value}</strong>
         </div>
       ))}
-      {/* Always show comparison */}
-      <div className="flex items-center gap-2 rounded-md bg-accent border border-border px-3 py-2 shadow-sm">
-        <Clock className="h-4 w-4 text-accent-foreground" />
-        <span className="text-muted-foreground">vs {method === "lsh" ? "TF-IDF" : "LSH"}:</span>
-        <strong className="text-foreground font-mono">
-          {method === "lsh" ? `${tfidfTimeMs.toFixed(2)} ms` : `${lshTimeMs.toFixed(2)} ms`}
-        </strong>
-      </div>
+      {others.map((m) => (
+        <div key={m} className="flex items-center gap-2 rounded-md bg-accent border border-border px-3 py-2 shadow-sm">
+          <Clock className="h-4 w-4 text-accent-foreground" />
+          <span className="text-muted-foreground">{methodLabel[m]}:</span>
+          <strong className="text-foreground font-mono">{timeMap[m].toFixed(2)} ms</strong>
+        </div>
+      ))}
     </div>
   );
 };
