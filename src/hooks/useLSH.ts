@@ -7,10 +7,10 @@ import {
   lshRetrieve,
   type MinHashResult,
   type LSHBandedResult,
-  type LSHBandedIndex,
 } from "@/lib/minhash";
+import { simHashRetrieve, type SimHashResult } from "@/lib/simhash";
 
-export type RetrievalMethod = "lsh" | "tfidf" | "minhash";
+export type RetrievalMethod = "lsh" | "tfidf" | "minhash" | "simhash";
 
 export interface LSHBandingConfig {
   numHashes: number;
@@ -37,9 +37,11 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
   const [lshResults, setLshResults] = useState<LSHBandedResult[]>([]);
   const [tfidfResults, setTfidfResults] = useState<TFIDFResult[]>([]);
   const [minhashResults, setMinhashResults] = useState<MinHashResult[]>([]);
+  const [simhashResults, setSimhashResults] = useState<SimHashResult[]>([]);
   const [lshTimeMs, setLshTimeMs] = useState(0);
   const [tfidfTimeMs, setTfidfTimeMs] = useState(0);
   const [minhashTimeMs, setMinhashTimeMs] = useState(0);
+  const [simhashTimeMs, setSimhashTimeMs] = useState(0);
   const [candidateCount, setCandidateCount] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
   const [method, setMethod] = useState<RetrievalMethod>("lsh");
@@ -50,6 +52,7 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
         setLshResults([]);
         setTfidfResults([]);
         setMinhashResults([]);
+        setSimhashResults([]);
         setHasSearched(false);
         return;
       }
@@ -70,6 +73,11 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
       setMinhashResults(mh.results);
       setMinhashTimeMs(mh.queryTimeMs);
 
+      // SimHash
+      const sh = simHashRetrieve(query, docs, topK);
+      setSimhashResults(sh.results);
+      setSimhashTimeMs(sh.queryTimeMs);
+
       setHasSearched(true);
     },
     [lshIndex, docs]
@@ -80,9 +88,11 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
     lshResults,
     tfidfResults,
     minhashResults,
+    simhashResults,
     lshTimeMs,
     tfidfTimeMs,
     minhashTimeMs,
+    simhashTimeMs,
     candidateCount,
     totalDocs: handbookChunks.length,
     hasSearched,

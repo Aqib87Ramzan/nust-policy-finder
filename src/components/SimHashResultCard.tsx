@@ -1,0 +1,59 @@
+import type { SimHashResult } from "@/lib/simhash";
+import type { HandbookChunk } from "@/data/handbookChunks";
+import { handbookChunks } from "@/data/handbookChunks";
+import { BookOpen, FileText, Hash, Fingerprint } from "lucide-react";
+
+interface Props {
+  result: SimHashResult;
+  rank: number;
+}
+
+function getChunk(id: number): HandbookChunk | undefined {
+  return handbookChunks.find((c) => c.id === id);
+}
+
+function similarityColor(sim: number): string {
+  if (sim >= 0.7) return "text-success";
+  if (sim >= 0.5) return "text-warning";
+  return "text-muted-foreground";
+}
+
+const SimHashResultCard = ({ result, rank }: Props) => {
+  const chunk = getChunk(result.docId);
+  if (!chunk) return null;
+
+  return (
+    <div className="animate-fade-in rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+            {rank}
+          </span>
+          <h3 className="font-display text-lg font-semibold text-foreground">{chunk.section}</h3>
+        </div>
+        <span className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+          <Fingerprint className="h-3 w-3" /> SimHash
+        </span>
+      </div>
+
+      <p className="text-foreground/80 text-sm leading-relaxed mb-4">{chunk.text}</p>
+
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{chunk.source}</span>
+        <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" />{chunk.chapter}</span>
+        <span className="flex items-center gap-1"><Hash className="h-3.5 w-3.5" />Page {chunk.page}</span>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-border flex gap-6 text-xs font-mono">
+        <span>
+          Hamming Dist: <strong className="text-foreground">{result.hammingDist}/64</strong>
+        </span>
+        <span>
+          Similarity: <strong className={similarityColor(result.similarity)}>{(result.similarity * 100).toFixed(1)}%</strong>
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default SimHashResultCard;
