@@ -158,3 +158,103 @@ export function retrieveByMinHash(
     hashFunctions,
   };
 }
+
+// ─── LSH Banding (Approximate Retrieval) ─────────────────────
+
+export interface LSHBandedIndex {
+  hashFunctions: HashFunction[];
+  numBands: number;
+  rowsPerBand: number;
+  shingleK: number;
+  docs: Array<{ id: number; shingles: Set<string>; signature: number[] }>;
+  /** One Map per band: bandKey → Set of doc ids */
+  bandBuckets: Map<string, Set<number>>[];
+}
+
+/**
+ * Build an LSH banding index on top of MinHash signatures.
+ * Split each signature into `bands` bands of `rows` rows each.
+ * Two documents are candidate pairs if they match in at least one band.
+ */
+export function buildLSHIndex(
+  chunks: Array<{ id: number; text: string }>,
+  numHashes = 100,
+  bands = 20,
+  rows = 5,
+  shingleK = 3
+): LSHBandedIndex {
+  const hashFunctions = generateHashFunctions(numHashes);
+
+  // Compute shingles + signatures for every chunk
+  const docs = chunks.map((c) => {
+    const shingles = getShingles(c.text, shingleK);
+    const signature = computeMinHashSignature(shingles, hashFunctions);
+    return { id: c.id, shingles, signature };
+  });
+
+  // Build band buckets
+  const bandBuckets: Map<string, Set<number>>[] = [];
+  for (let b = 0; b < bands; b++) {
+    const bucketMap = new Map<string, Set<number>>();
+    for (const doc of docs) {
+      const bandSlice = doc.signature.slice(b * rows, (b + 1) * rows);
+      const key = bandSlice.join(",");
+      if (!bucketMap.has(key)) bucketMap.set(key, new Set());
+      bucketMap.get(key)!.add(doc.id);
+    }
+    bandBuckets.push(bucketMap);
+  }
+
+  return { hashFunctions, numBands: bands, rowsPerBand: rows, shingleK, docs, bandBuckets };
+}
+
+export interface LSHBandedResult {
+  docId: number;
+  estimatedJaccard: number;
+  exactJaccard: number;
+  isCandidateFromLSH: boolean;
+}
+
+/**
+ * Query the LSH banding index: compute query signature, find candidate
+ * chunks via banding, then rank all docs and mark LSH candidates.
+ */
+export function lshRetrieve(
+  query: string,
+  lshIndex: LSHBandedIndex,
+  k = 5
+): { results: LSHBandedResult[]; queryTimeMs: number; candidateCount: number; totalDocs: number } {
+  const start = performance.now();
+  const { hashFunctions, numBands, rowsPerBand, docs, bandBuckets, shingleK } = lshIndex;
+
+  const qShingles = getShingles(query, shingleK);
+  const qSignature = computeMinHashSignature(qShingles, hashFunctions);
+
+  // Find LSH candidates via banding
+  const candidateIds = new Set<number>();
+  for (let b = 0; b < numBands; b++) {
+    const bandSlice = qSignature.slice(b * rowsPerBand, (b + 1) * rowsPerBand);
+    const key = bandSlice.join(",");
+    const bucket = bandBuckets[b].get(key);
+    if (bucket) {
+      for (const id of bucket) candidateIds.add(id);
+    }
+  }
+
+  // Score all docs, mark LSH candidates
+  const results: LSHBandedResult[] = docs.map((doc) => ({
+    docId: doc.id,
+    estimatedJaccard: estimateJaccardSimilarity(qSignature, doc.signature),
+    exactJaccard: exactJaccardSimilarity(qShingles, doc.shingles),
+    isCandidateFromLSH: candidateIds.has(doc.id),
+  }));
+
+  results.sort((a, b) => b.exactJaccard - a.exactJaccard);
+
+  return {
+    results: results.slice(0, k),
+    queryTimeMs: performance.now() - start,
+    candidateCount: candidateIds.size,
+    totalDocs: docs.length,
+  };
+}

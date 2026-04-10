@@ -1,10 +1,10 @@
-import type { QueryResult } from "@/lib/lsh";
+import type { LSHBandedResult } from "@/lib/minhash";
 import type { HandbookChunk } from "@/data/handbookChunks";
 import { handbookChunks } from "@/data/handbookChunks";
 import { BookOpen, FileText, Hash, Zap } from "lucide-react";
 
 interface ResultCardProps {
-  result: QueryResult;
+  result: LSHBandedResult;
   rank: number;
 }
 
@@ -52,10 +52,10 @@ const ResultCard = ({ result, rank }: ResultCardProps) => {
       {/* Similarity scores */}
       <div className="mt-3 pt-3 border-t border-border flex gap-6 text-xs font-mono">
         <span>
-          Jaccard: <strong className={similarityColor(result.jaccardSimilarity)}>{(result.jaccardSimilarity * 100).toFixed(1)}%</strong>
+          Jaccard: <strong className={similarityColor(result.exactJaccard)}>{(result.exactJaccard * 100).toFixed(1)}%</strong>
         </span>
         <span>
-          MinHash Est: <strong className={similarityColor(result.estimatedSimilarity)}>{(result.estimatedSimilarity * 100).toFixed(1)}%</strong>
+          MinHash Est: <strong className={similarityColor(result.estimatedJaccard)}>{(result.estimatedJaccard * 100).toFixed(1)}%</strong>
         </span>
       </div>
     </div>
