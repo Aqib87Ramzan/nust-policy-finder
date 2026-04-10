@@ -3,10 +3,11 @@ export interface HandbookChunk {
   text: string;
   source: string;
   chapter: string;
-  section: string;
   page: number;
+  word_count: number;
 }
-[
+
+export const UgChunks: Ugchunks[] = [
   {
     "id": 0,
     "text": "We AIM HIGHER The National University of Sciences and Technology (NUST) stands as a vibrant beacon of higher education in Pakistan. Despite its youth of just 30 years, this esteemed institution rightfully boasts of its exceptional reputation as a center of excellence.. Since technological supremacy is the key to shaping the destiny of a nation, NUST fuels the spirit of inquiry, enterprise, and dynamism in all facets of research and professional education. The dividends of our focused and sustained efforts are distinctly visible in the vibrant involvement of our students and faculty in a wide range of research projects, publications, patent filing, and joint research ventures. Tech ONE and National Science and Technology Park (NSTP) are some of the potent NUST initiatives to expand the base of research and development towards building the national economy. NUST offers undergraduate & postgraduate programmes in a wide range of fields including Engineering, IT, Biosciences, Business Management, Economics, Environment, Applied Sciences, Architecture, and Social Sciences. In the years ahead, we are hopeful to pursue with renewed vigour and zeal our vision of expanding not only our academic programmes but also the student intake across various NUST schools without diluting our traditional standards of NUST",
