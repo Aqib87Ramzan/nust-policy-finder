@@ -1,17 +1,40 @@
 import { useMemo, useState, useCallback } from "react";
 import { handbookChunks } from "@/data/handbookChunks";
-import { buildIndex, queryIndex, type QueryResult, type LSHConfig, DEFAULT_LSH_CONFIG } from "@/lib/lsh";
 import { retrieveTopK, type TFIDFResult } from "@/lib/tfidf";
-import { retrieveByMinHash, type MinHashResult } from "@/lib/minhash";
+import {
+  retrieveByMinHash,
+  buildLSHIndex,
+  lshRetrieve,
+  type MinHashResult,
+  type LSHBandedResult,
+  type LSHBandedIndex,
+} from "@/lib/minhash";
 
 export type RetrievalMethod = "lsh" | "tfidf" | "minhash";
 
-export function useLSH(config: LSHConfig = DEFAULT_LSH_CONFIG) {
+export interface LSHBandingConfig {
+  numHashes: number;
+  bands: number;
+  rows: number;
+  shingleK: number;
+}
+
+export const DEFAULT_BANDING_CONFIG: LSHBandingConfig = {
+  numHashes: 100,
+  bands: 20,
+  rows: 5,
+  shingleK: 3,
+};
+
+export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
   const docs = useMemo(() => handbookChunks.map((c) => ({ id: c.id, text: c.text })), []);
 
-  const index = useMemo(() => buildIndex(docs, config), [docs, config]);
+  const lshIndex = useMemo(
+    () => buildLSHIndex(docs, config.numHashes, config.bands, config.rows, config.shingleK),
+    [docs, config]
+  );
 
-  const [lshResults, setLshResults] = useState<QueryResult[]>([]);
+  const [lshResults, setLshResults] = useState<LSHBandedResult[]>([]);
   const [tfidfResults, setTfidfResults] = useState<TFIDFResult[]>([]);
   const [minhashResults, setMinhashResults] = useState<MinHashResult[]>([]);
   const [lshTimeMs, setLshTimeMs] = useState(0);
@@ -31,22 +54,25 @@ export function useLSH(config: LSHConfig = DEFAULT_LSH_CONFIG) {
         return;
       }
 
-      const lsh = queryIndex(index, query, topK);
+      // LSH Banding (built on MinHash foundation)
+      const lsh = lshRetrieve(query, lshIndex, topK);
       setLshResults(lsh.results);
       setLshTimeMs(lsh.queryTimeMs);
       setCandidateCount(lsh.candidateCount);
 
+      // TF-IDF baseline
       const tfidf = retrieveTopK(query, docs, topK);
       setTfidfResults(tfidf.results);
       setTfidfTimeMs(tfidf.queryTimeMs);
 
+      // Standalone MinHash
       const mh = retrieveByMinHash(query, docs, topK);
       setMinhashResults(mh.results);
       setMinhashTimeMs(mh.queryTimeMs);
 
       setHasSearched(true);
     },
-    [index, docs]
+    [lshIndex, docs]
   );
 
   return {
@@ -62,6 +88,6 @@ export function useLSH(config: LSHConfig = DEFAULT_LSH_CONFIG) {
     hasSearched,
     method,
     setMethod,
-    index,
+    lshIndex,
   };
 }
