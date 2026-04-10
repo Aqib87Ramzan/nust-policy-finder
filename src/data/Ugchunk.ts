@@ -1,4 +1,4 @@
-export interface HandbookChunk {
+export interface Ugchunks {
   id: number;
   text: string;
   source: string;
