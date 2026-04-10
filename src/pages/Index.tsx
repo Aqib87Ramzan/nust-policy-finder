@@ -4,21 +4,23 @@ import SearchBar from "@/components/SearchBar";
 import ResultCard from "@/components/ResultCard";
 import TFIDFResultCard from "@/components/TFIDFResultCard";
 import MinHashResultCard from "@/components/MinHashResultCard";
+import SimHashResultCard from "@/components/SimHashResultCard";
 import StatsBar from "@/components/StatsBar";
 import Suggestions from "@/components/Suggestions";
 import { GraduationCap } from "lucide-react";
 
 const methodMeta: Record<RetrievalMethod, { label: string; desc: string }> = {
-  lsh: { label: "LSH (Banded)", desc: "Banded MinHash with char-level shingles" },
+  lsh: { label: "LSH (Banded)", desc: "Banded MinHash with word-level shingles" },
   tfidf: { label: "TF-IDF", desc: "Cosine similarity baseline" },
   minhash: { label: "MinHash", desc: "Word k-gram Jaccard estimation" },
+  simhash: { label: "SimHash", desc: "64-bit fingerprint Hamming distance" },
 };
 
 const Index = () => {
   const [query, setQuery] = useState("");
   const {
-    search, lshResults, tfidfResults, minhashResults,
-    lshTimeMs, tfidfTimeMs, minhashTimeMs, candidateCount,
+    search, lshResults, tfidfResults, minhashResults, simhashResults,
+    lshTimeMs, tfidfTimeMs, minhashTimeMs, simhashTimeMs, candidateCount,
     totalDocs, hasSearched, method, setMethod,
   } = useLSH();
 
@@ -77,6 +79,7 @@ const Index = () => {
           lshTimeMs={lshTimeMs}
           tfidfTimeMs={tfidfTimeMs}
           minhashTimeMs={minhashTimeMs}
+          simhashTimeMs={simhashTimeMs}
           hasSearched={hasSearched}
           method={method}
         />
@@ -105,10 +108,19 @@ const Index = () => {
           </div>
         )}
 
+        {hasSearched && method === "simhash" && simhashResults.length > 0 && (
+          <div className="space-y-4">
+            {simhashResults.map((r, i) => (
+              <SimHashResultCard key={r.docId} result={r} rank={i + 1} />
+            ))}
+          </div>
+        )}
+
         {hasSearched &&
           ((method === "lsh" && lshResults.length === 0) ||
             (method === "tfidf" && tfidfResults.length === 0) ||
-            (method === "minhash" && minhashResults.length === 0)) && (
+            (method === "minhash" && minhashResults.length === 0) ||
+            (method === "simhash" && simhashResults.length === 0)) && (
             <p className="text-center text-muted-foreground py-8">No matching policies found.</p>
           )}
 

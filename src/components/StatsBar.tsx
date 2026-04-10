@@ -7,6 +7,7 @@ interface StatsBarProps {
   lshTimeMs: number;
   tfidfTimeMs: number;
   minhashTimeMs: number;
+  simhashTimeMs: number;
   hasSearched: boolean;
   method: RetrievalMethod;
 }
@@ -15,12 +16,13 @@ const methodLabel: Record<RetrievalMethod, string> = {
   lsh: "LSH",
   tfidf: "TF-IDF",
   minhash: "MinHash",
+  simhash: "SimHash",
 };
 
-const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, minhashTimeMs, hasSearched, method }: StatsBarProps) => {
+const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, minhashTimeMs, simhashTimeMs, hasSearched, method }: StatsBarProps) => {
   if (!hasSearched) return null;
 
-  const timeMap: Record<RetrievalMethod, number> = { lsh: lshTimeMs, tfidf: tfidfTimeMs, minhash: minhashTimeMs };
+  const timeMap: Record<RetrievalMethod, number> = { lsh: lshTimeMs, tfidf: tfidfTimeMs, minhash: minhashTimeMs, simhash: simhashTimeMs };
 
   const stats = [
     { icon: Database, label: "Chunks", value: String(totalDocs) },
@@ -35,7 +37,7 @@ const StatsBar = ({ totalDocs, candidateCount, lshTimeMs, tfidfTimeMs, minhashTi
   }
 
   // Comparison times
-  const others = (["lsh", "tfidf", "minhash"] as const).filter((m) => m !== method);
+  const others = (["lsh", "tfidf", "minhash", "simhash"] as const).filter((m) => m !== method);
 
   return (
     <div className="animate-fade-in flex flex-wrap justify-center gap-3 text-sm">
