@@ -1,3 +1,11 @@
+export interface HandbookChunk {
+  id: number;
+  text: string;
+  source: string;
+  chapter: string;
+  section: string;
+  page: number;
+}
 [
   {
     "id": 0,
