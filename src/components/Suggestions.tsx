@@ -1,14 +1,12 @@
 import { handbookChunks } from "@/data/handbookChunks";
+import { MessageCircleQuestion } from "lucide-react";
 
 const sampleQueries = [
+  "What is the minimum GPA requirement?",
+  "What happens if a student fails a course?",
   "What is the attendance policy?",
-  "minimum CGPA for PhD degree",
-  "course repetition rules",
-  "withdrawal from university",
-  "GPA grading scale",
-  "summer semester credit hours",
-  "PhD qualifying examination",
-  "probation conditions",
+  "How many times can a course be repeated?",
+  "What are the PhD publication requirements?",
 ];
 
 interface SuggestionsProps {
@@ -17,14 +15,17 @@ interface SuggestionsProps {
 
 const Suggestions = ({ onSelect }: SuggestionsProps) => {
   return (
-    <div className="text-center space-y-4">
-      <p className="text-sm text-muted-foreground">Try a sample query:</p>
+    <div className="text-center space-y-5">
+      <div className="flex items-center justify-center gap-2 text-muted-foreground">
+        <MessageCircleQuestion className="h-4 w-4" />
+        <p className="text-sm font-semibold">Try a sample query</p>
+      </div>
       <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
         {sampleQueries.map((q) => (
           <button
             key={q}
             onClick={() => onSelect(q)}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="rounded-full border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-primary hover:text-primary-foreground transition-colors shadow-sm"
           >
             {q}
           </button>
