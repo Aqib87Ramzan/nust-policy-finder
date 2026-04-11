@@ -1,15 +1,20 @@
 import type { LSHBandedResult } from "@/lib/minhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";
+import { pgChunks } from "@/data/Pgchunks";
 import { BookOpen, FileText, Hash, Zap } from "lucide-react";
+import { getQueryWords } from "@/lib/answerExtractor";
+import { HighlightedText } from "@/lib/highlightExtractor";
 
 interface ResultCardProps {
   result: LSHBandedResult;
   rank: number;
+  query?: string;
 }
 
 function getChunk(id: number): Chunk | undefined {
-  return ugChunks.find((c) => c.id === id);
+  const allChunks = [...ugChunks, ...pgChunks];
+  return allChunks.find((c) => c.id === id);
 }
 
 function similarityColor(sim: number): string {
@@ -18,9 +23,11 @@ function similarityColor(sim: number): string {
   return "text-muted-foreground";
 }
 
-const ResultCard = ({ result, rank }: ResultCardProps) => {
+const ResultCard = ({ result, rank, query }: ResultCardProps) => {
   const chunk = getChunk(result.docId);
   if (!chunk) return null;
+
+  const queryWords = query ? getQueryWords(query) : [];
 
   return (
     <div className="animate-fade-in rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -40,7 +47,9 @@ const ResultCard = ({ result, rank }: ResultCardProps) => {
       </div>
 
       {/* Body */}
-      <p className="text-foreground/80 text-sm leading-relaxed mb-4">{chunk.text}</p>
+      <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+        <HighlightedText text={chunk.text} queryWords={queryWords} />
+      </p>
 
       {/* Meta row */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

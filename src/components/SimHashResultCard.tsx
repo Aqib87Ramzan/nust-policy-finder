@@ -1,15 +1,20 @@
 import type { SimHashResult } from "@/lib/simhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";
+import { pgChunks } from "@/data/Pgchunks";
 import { BookOpen, FileText, Hash, Fingerprint } from "lucide-react";
+import { getQueryWords } from "@/lib/answerExtractor";
+import { HighlightedText } from "@/lib/highlightExtractor";
 
 interface Props {
   result: SimHashResult;
   rank: number;
+  query?: string;
 }
 
 function getChunk(id: number): Chunk | undefined {
-  return ugChunks.find((c) => c.id === id);
+  const allChunks = [...ugChunks, ...pgChunks];
+  return allChunks.find((c) => c.id === id);
 }
 
 function similarityColor(sim: number): string {
@@ -18,9 +23,11 @@ function similarityColor(sim: number): string {
   return "text-muted-foreground";
 }
 
-const SimHashResultCard = ({ result, rank }: Props) => {
+const SimHashResultCard = ({ result, rank, query }: Props) => {
   const chunk = getChunk(result.docId);
   if (!chunk) return null;
+
+  const queryWords = query ? getQueryWords(query) : [];
 
   return (
     <div className="animate-fade-in rounded-lg border border-border bg-card p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -36,7 +43,9 @@ const SimHashResultCard = ({ result, rank }: Props) => {
         </span>
       </div>
 
-      <p className="text-foreground/80 text-sm leading-relaxed mb-4">{chunk.text}</p>
+      <p className="text-foreground/80 text-sm leading-relaxed mb-4">
+        <HighlightedText text={chunk.text} queryWords={queryWords} />
+      </p>
 
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{chunk.source}</span>

@@ -1,11 +1,13 @@
 import { ugChunks, type Chunk } from "@/data/Ugchunk";
+import { pgChunks } from "@/data/Pgchunks";
 import type { LSHBandedResult, MinHashResult } from "@/lib/minhash";
 import type { TFIDFResult } from "@/lib/tfidf";
 import type { SimHashResult } from "@/lib/simhash";
 import { BookOpen, FileText, Hash } from "lucide-react";
 
 function getChunk(id: number): Chunk | undefined {
-  return ugChunks.find((c) => c.id === id);
+  const allChunks = [...ugChunks, ...pgChunks];
+  return allChunks.find((c) => c.id === id);
 }
 
 function rankBadge(rank: number) {

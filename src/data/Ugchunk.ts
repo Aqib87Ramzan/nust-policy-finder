@@ -10,19 +10,19 @@ export interface Chunk {
 export const ugChunks: Chunk[] = [
   {
     "id": 0,
-    "text": "We AIM HIGHER The National University of Sciences and Technology (NUST) stands as a vibrant beacon of higher education in Pakistan. Despite its youth of just 30 years, this esteemed institution rightfully boasts of its exceptional reputation as a center of excellence.. Since technological supremacy is the key to shaping the destiny of a nation, NUST fuels the spirit of inquiry, enterprise, and dynamism in all facets of research and professional education. The dividends of our focused and sustained efforts are distinctly visible in the vibrant involvement of our students and faculty in a wide range of research projects, publications, patent filing, and joint research ventures. Tech ONE and National Science and Technology Park (NSTP) are some of the potent NUST initiatives to expand the base of research and development towards building the national economy. NUST offers undergraduate & postgraduate programmes in a wide range of fields including Engineering, IT, Biosciences, Business Management, Economics, Environment, Applied Sciences, Architecture, and Social Sciences. In the years ahead, we are hopeful to pursue with renewed vigour and zeal our vision of expanding not only our academic programmes but also the student intake across various NUST schools without diluting our traditional standards of NUST",
+    "text": "NUST Academic Programmes Overview: NUST offers 39 Undergraduate (UG), 73 Master of Science (MS), and 47 Ph.D. programmes across various schools and colleges. Students are selected strictly on merit. Programme fields include: Engineering, Information Technology, Biosciences, Business Management, Economics, Environment, Applied Sciences, Architecture, and Social Sciences. The University comprises 21 constituent colleges/schools/centres offering comprehensive academic education in science, technology, and management disciplines.",
     "source": "UG Handbook",
-    "chapter": "Chapter 5: Management & Social Sciences",
+    "chapter": "Chapter 1: The University",
     "page": 2,
-    "word_count": 200
+    "word_count": 85
   },
   {
     "id": 1,
-    "text": "with renewed vigour and zeal our vision of expanding not only our academic programmes but also the student intake across various NUST schools without diluting our traditional standards of NUST is a place worth any aspiring student's time, labour, and money to claim a place in excellence. the comity of those educated in the spirit of challenging times today and tomorrow. It is a great transforming experience to live, imbibe and treasure. Disclaimer This handbook is being issued for general information and guidance of the students. The University reserves the right to withdraw or make amendments in Academic Regulations and other rules/policies/instructions as and when deemed necessary. Important Students are required to read all the instructions given in this handbook and deposit the Undertaking given at the end of this handbook (Annex E), duly completed, as guided by the respective institution.",
+    "text": "NUST Student Requirements: Students are selected strictly on merit to join NUST. All students are required to read all instructions in this handbook and comply with academic regulations. Students must deposit the signed Undertaking (Annex E) as guided by their respective institution. Note: The University reserves the right to withdraw or make amendments to Academic Regulations and rules/policies/instructions as deemed necessary. All policies are subject to approval by NUST Academic Council and Faculty Board of Studies (FBS) of respective institutions.",
     "source": "UG Handbook",
-    "chapter": "General",
+    "chapter": "Chapter 1: The University",
     "page": 2,
-    "word_count": 141
+    "word_count": 85
   },
   {
     "id": 2,
@@ -42,43 +42,43 @@ export const ugChunks: Chunk[] = [
   },
   {
     "id": 4,
-    "text": "3. Vision. NUST aspires to be a comprehensive university providing a higher education experience grounded in thought leadership, co-creation of knowledge, and sustainability. 4. Mission. We are committed to being a university that stimulates intellectual curiosity, behavioral progression, and environmental stewardship. We nurture future leaders, job creators, and lifelong learners, with the ability to foster partnerships, and intercultural competence to impact their communities and beyond. Through adherence to our core values, we create an ecosystem that promotes research, innovation, and productivity: 5. Values: 6. a. Integrity. NUST provides a fair and transparent work environment and encourages its stakeholders to act ethically and honestly in the interest of the wider community. b. Pursuit of Excellence. Excellence is a recursive attribute inculcated in the NUST culture. We strive to achieve excellence in academics, research, and innovation to build a national and global knowledge economy. c. Inspiring Partnerships. NUST promotes sharing of inspirational and researchdriven content that drives change. Our leadership, faculty and students cocreate knowledge that is of relevance and value for our communities. d. Diversity, Equity, and Inclusion. NUST community embraces and respects human and social diversity and encourages their absorption by developing an inclusive work environment to provide equal opportunities",
+    "text": "NUST Community Standards: Integrity - NUST provides a fair and transparent work environment. Students must act ethically and honestly in the interest of the wider community. Pursuit of Excellence - Excellence is inculcated in NUST culture through academics, research, and innovation. Diversity, Equity, and Inclusion - NUST community embraces and respects human and social diversity. The university provides an inclusive work environment with equal opportunities for all. Sustainability - NUST nurtures responsible resource planning and management in all academic, research, and social endeavors.",
     "source": "UG Handbook",
-    "chapter": "General",
+    "chapter": "Chapter 1: The University",
     "page": 6,
-    "word_count": 200
+    "word_count": 90
   },
   {
     "id": 5,
-    "text": "our communities. d. Diversity, Equity, and Inclusion. NUST community embraces and respects human and social diversity and encourages their absorption by developing an inclusive work environment to provide equal opportunities for all. e. Sustainability. NUST nurtures its community with responsible resource planning and management. Our academic, research, and social endeavors actively tackle social, economic, and environmental challenges. Strategic Thrusts: 2 a. Excellence in Teaching and Education. Provide high-quality education in science and technology within the reach of all segments of society. b. Focus on Research. Undertake high-quality relevant research to support the needs of the emerging knowledge-based economy and society. c. Spirit of Enterprise. Develop instruments and mechanisms to cultivate in NUST graduates the spirit of enterprise and entrepreneurial culture and build strong linkages with industry. d. Internationalization and Global Vision. Establish strong international linkages to ensure the inflow of new knowledge and state-of-the-art technologies, and build, as a corollary, positive international image of our University and the country. NUST Undergraduate Student Handbook",
+    "text": "NUST Academic Focus Areas: Excellence in Teaching and Education - NUST provides high-quality education in science and technology. Focus on Research - The university undertakes high-quality relevant research supporting knowledge-based economy and society. Spirit of Enterprise - NUST cultivates entrepreneurial culture in graduates and maintains strong industry linkages. Internationalization - NUST establishes international linkages for knowledge exchange and state-of-the-art technology transfer. The university maintains positive international reputation and accepts international students as part of its global vision.",
     "source": "UG Handbook",
-    "chapter": "Chapter 5: Management & Social Sciences",
+    "chapter": "Chapter 1: The University",
     "page": 6,
-    "word_count": 163
+    "word_count": 85
   },
   {
     "id": 6,
-    "text": "e. 7. Positive Social Impact. Formulate curricula and programmes to suit a wider cross-section of the population in terms of education and absorption of new technologies. Why Study at NUST? NUST symbolizes quality and excellence. Its spirited faculty, industrious students, and excellent support infrastructure provide an academic environment, found only in the very best of the world universities, evident from the following: a. b. NUST is a member of: (1) International Association of Universities (IAU) (2) The Talloires Network (3) International Network for Quality Assurance Agencies in Higher Education (INQAAHE) (4) United Nations Academic Impact (UNAI) (5) Association of Management Development Institution in South Asia (AMDISA) (6) Asia-Pacific Quality Network (APQN) (7) Association of Quality Assurance Agencies of the Islamic World (QAIslamic). (8) World Design Organization (WDO) NUST Rankings. NUST actively participates in international university rankings conducted by various esteemed organizations such as Quacquarelli Symonds (QS), Times Higher Education (THE), etc., securing a prominent position both globally and nationally. Over a brief period, the university has garnered global recognition and consistently elevated its rankings, a testament to the dedication of our faculty and staff in enhancing NUST's prestige year after year. (1) QS World Universities Ranking. In the latest QS",
+    "text": "NUST International Recognition and Memberships: NUST is a member of key international organizations including: International Association of Universities (IAU), The Talloires Network, International Network for Quality Assurance Agencies in Higher Education (INQAAHE), United Nations Academic Impact (UNAI), Association of Management Development Institution in South Asia (AMDISA), Asia-Pacific Quality Network (APQN), Association of Quality Assurance Agencies of the Islamic World (QAIslamic), and World Design Organization (WDO). The university participates in international rankings (QS, THE) and maintains global recognition.",
     "source": "UG Handbook",
-    "chapter": "Chapter 5: Management & Social Sciences",
+    "chapter": "Chapter 1: The University",
     "page": 7,
-    "word_count": 200
+    "word_count": 85
   },
   {
     "id": 7,
-    "text": "consistently elevated its rankings, a testament to the dedication of our faculty and staff in enhancing NUST's prestige year after year. (1) QS World Universities Ranking. In the latest QS World University Rankings 2024, NUST holds the 353rd position globally and ranks 2nd among Pakistani Universities. (2) QS Asian Ranking. NUST secures the 64th position in QS Asian University Rankings 2024. (3) QS Subjects Rankings. NUST emerges as a Comprehensive Multidisciplinary University in the QS World University Rankings released in 2024, achieving distinction in Broad Subject Areas and Subject Wise Rankings. (a) Broad Subject Areas. NUST excels in various multidisciplinary areas ranked by QS, including Engineering & Technology, NUST Undergraduate Student Handbook 3",
+    "text": "NUST Global Rankings (2024): QS World University Ranking - NUST holds 353rd position globally and ranks 2nd among Pakistani Universities. QS Asian Ranking - NUST secures 64th position in Asia. QS Subject Rankings - NUST excels in Engineering & Technology (Global rank 144, Pakistan rank 1), Natural Sciences (Global 394, Pakistan 3), and Social Sciences & Management (Global 400, Pakistan 2). Notable subject rankings: Computer Science & Information Systems (174 global), Electrical Engineering (151-200), Civil Engineering (151-200), Mechanical Engineering (201-250), Chemistry (301-350), Business & Management (301-350).",
     "source": "UG Handbook",
-    "chapter": "General",
+    "chapter": "Chapter 1: The University",
     "page": 7,
-    "word_count": 113
+    "word_count": 110
   },
   {
     "id": 8,
-    "text": "Natural Sciences, Social Sciences & Management, Life Sciences and Medicine, and Arts and Humanities: i. Engineering & Technology. NUST maintains its 1st position in Engineering & Technology in Pakistan and has improved its global rank to 144. ii. Natural Sciences. NUST ranks 394 globally and 3rd among Pakistani Universities in Natural Sciences. iii. Social Sciences & Management. NUST ranks 400 globally and 2nd among Pakistani universities in this broad subject area. (b) 8. Subject Areas. NUST holds a distinguished position worldwide and in Pakistan across various subjects: Ser Subject Area World National Ranking Ranking i. Computer Science & Information Systems 174 1 ii. Electrical & Electronics Engineering 151-200 1 iii. Civil and Structural Engineering 151-200 1 iv. Mechanical, Aeronautical & Manufacturing Engineering 201-250 1 v. Chemical Engineering 251-300 1 vi. Mathematics 201-250 1 vii. Material Sciences 251-300 1 viii. Chemistry 301-350 2 ix. Business & Management 301-350 2 x. Accounting & Finance 301-350 2 xi. Environmental Sciences 351-400 2 xii. Medicine 551-600 2 xiii. Physics & Astronomy 301-350 3 xiv. Economics & Econometrics 401-450 4 xv. Biological Sciences 551-600 5 Important Telephone Numbers: 4 NUST Undergraduate Student Handbook",
+    "text": "NUST Subject-Specific Rankings and Positions: NUST excels across diverse subject areas. World rankings include: Computer Science & Information Systems (174), Electrical & Electronics Engineering (151-200), Civil and Structural Engineering (151-200), Mechanical/Manufacturing Engineering (201-250), Mathematics (201-250), Chemistry (301-350), Physics & Astronomy (301-350), Chemical Engineering (251-300), Material Sciences (251-300), Business & Management (301-350), Accounting & Finance (301-350), Environmental Sciences (351-400), Economics & Econometrics (401-450), Medicine (551-600), Biological Sciences (551-600). Many subjects rank 1st nationally in Pakistan.",
     "source": "UG Handbook",
-    "chapter": "Chapter 5: Management & Social Sciences",
+    "chapter": "Chapter 1: The University",
     "page": 8,
-    "word_count": 188
+    "word_count": 95
   },
   {
     "id": 9,
