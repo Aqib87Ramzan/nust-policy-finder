@@ -23,7 +23,7 @@ export const DEFAULT_BANDING_CONFIG: LSHBandingConfig = {
   numHashes: 100,
   bands: 20,
   rows: 5,
-  shingleK: 3,
+  shingleK: 2,
 };
 
 export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
