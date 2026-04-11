@@ -8,7 +8,7 @@ import SimHashResultCard from "@/components/SimHashResultCard";
 import MetricsPanel from "@/components/MetricsPanel";
 import ComparePanel from "@/components/ComparePanel";
 import Suggestions from "@/components/Suggestions";
-import { GraduationCap, GitCompareArrows } from "lucide-react";
+import { GraduationCap, GitCompareArrows, Loader2, Database } from "lucide-react";
 
 const methods: { value: RetrievalMethod; label: string }[] = [
   { value: "tfidf", label: "TF-IDF (Exact)" },
@@ -24,7 +24,7 @@ const Index = () => {
   const {
     search, lshResults, tfidfResults, minhashResults, simhashResults,
     lshTimeMs, tfidfTimeMs, minhashTimeMs, simhashTimeMs, candidateCount,
-    totalDocs, hasSearched, method, setMethod,
+    totalDocs, hasSearched, method, setMethod, isIndexing,
   } = useLSH();
 
   const handleSearch = () => {
@@ -63,108 +63,121 @@ const Index = () => {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Query Section */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-5">
-          <p className="text-sm font-semibold text-foreground">Ask a question about NUST policies</p>
-
-          <SearchBar
-            value={query}
-            onChange={setQuery}
-            onSearch={handleSearch}
-            placeholder="Ask a question about NUST policies..."
-          />
-
-          {/* Controls row */}
-          <div className="flex flex-wrap items-end gap-4">
-            {/* Method dropdown */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Retrieval Method</label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value as RetrievalMethod)}
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {methods.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
+        {/* Indexing status */}
+        {isIndexing ? (
+          <div className="flex items-center justify-center gap-3 py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm font-medium">Building search index...</span>
+          </div>
+        ) : (
+          <>
+            {/* Index ready badge */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Database className="h-3.5 w-3.5 text-primary" />
+              <span>{totalDocs} chunks indexed and ready</span>
             </div>
 
-            {/* Top-K slider */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">
-                Top-K Results: <span className="font-mono text-foreground">{topK}</span>
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={topK}
-                onChange={(e) => setTopK(Number(e.target.value))}
-                className="w-32 accent-primary"
+            {/* Query Section */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-5">
+              <p className="text-sm font-semibold text-foreground">Ask a question about NUST policies</p>
+
+              <SearchBar
+                value={query}
+                onChange={setQuery}
+                onSearch={handleSearch}
+                placeholder="Ask a question about NUST policies..."
               />
+
+              {/* Controls row */}
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Retrieval Method</label>
+                  <select
+                    value={method}
+                    onChange={(e) => setMethod(e.target.value as RetrievalMethod)}
+                    className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {methods.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">
+                    Top-K Results: <span className="font-mono text-foreground">{topK}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    value={topK}
+                    onChange={(e) => setTopK(Number(e.target.value))}
+                    className="w-32 accent-primary"
+                  />
+                </div>
+
+                {hasSearched && (
+                  <button
+                    onClick={handleCompare}
+                    className="flex items-center gap-2 rounded-md border border-border bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent/80 transition-colors"
+                  >
+                    <GitCompareArrows className="h-4 w-4" />
+                    Compare All Methods
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Compare button */}
-            {hasSearched && (
-              <button
-                onClick={handleCompare}
-                className="flex items-center gap-2 rounded-md border border-border bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent/80 transition-colors"
-              >
-                <GitCompareArrows className="h-4 w-4" />
-                Compare All Methods
-              </button>
+            {/* Suggestions */}
+            {!hasSearched && <Suggestions onSelect={handleSuggestion} />}
+
+            {/* Metrics Panel */}
+            {hasSearched && !showCompare && (
+              <MetricsPanel
+                method={method}
+                timeMs={timeMap[method]}
+                totalDocs={totalDocs}
+                candidateCount={candidateCount}
+                resultsReturned={resultsMap[method].length}
+              />
             )}
-          </div>
-        </div>
 
-        {/* Suggestions */}
-        {!hasSearched && <Suggestions onSelect={handleSuggestion} />}
-
-        {/* Metrics Panel */}
-        {hasSearched && !showCompare && (
-          <MetricsPanel
-            method={method}
-            timeMs={timeMap[method]}
-            totalDocs={totalDocs}
-            candidateCount={candidateCount}
-            resultsReturned={resultsMap[method].length}
-          />
-        )}
-
-        {/* Comparison Panel */}
-        {hasSearched && showCompare && (
-          <ComparePanel
-            tfidfResults={tfidfResults}
-            lshResults={lshResults}
-            minhashResults={minhashResults}
-            simhashResults={simhashResults}
-            tfidfTimeMs={tfidfTimeMs}
-            lshTimeMs={lshTimeMs}
-            minhashTimeMs={minhashTimeMs}
-            simhashTimeMs={simhashTimeMs}
-          />
-        )}
-
-        {/* Single-method results */}
-        {hasSearched && !showCompare && (
-          <div className="space-y-4">
-            {method === "lsh" && lshResults.map((r, i) => (
-              <ResultCard key={r.docId} result={r} rank={i + 1} />
-            ))}
-            {method === "tfidf" && tfidfResults.map((r, i) => (
-              <TFIDFResultCard key={r.docId} result={r} rank={i + 1} />
-            ))}
-            {method === "minhash" && minhashResults.map((r, i) => (
-              <MinHashResultCard key={r.docId} result={r} rank={i + 1} />
-            ))}
-            {method === "simhash" && simhashResults.map((r, i) => (
-              <SimHashResultCard key={r.docId} result={r} rank={i + 1} />
-            ))}
-            {resultsMap[method].length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No matching policies found.</p>
+            {/* Comparison Panel */}
+            {hasSearched && showCompare && (
+              <ComparePanel
+                tfidfResults={tfidfResults}
+                lshResults={lshResults}
+                minhashResults={minhashResults}
+                simhashResults={simhashResults}
+                tfidfTimeMs={tfidfTimeMs}
+                lshTimeMs={lshTimeMs}
+                minhashTimeMs={minhashTimeMs}
+                simhashTimeMs={simhashTimeMs}
+              />
             )}
-          </div>
+
+            {/* Single-method results */}
+            {hasSearched && !showCompare && (
+              <div className="space-y-4">
+                {method === "lsh" && lshResults.map((r, i) => (
+                  <ResultCard key={r.docId} result={r} rank={i + 1} />
+                ))}
+                {method === "tfidf" && tfidfResults.map((r, i) => (
+                  <TFIDFResultCard key={r.docId} result={r} rank={i + 1} />
+                ))}
+                {method === "minhash" && minhashResults.map((r, i) => (
+                  <MinHashResultCard key={r.docId} result={r} rank={i + 1} />
+                ))}
+                {method === "simhash" && simhashResults.map((r, i) => (
+                  <SimHashResultCard key={r.docId} result={r} rank={i + 1} />
+                ))}
+                {resultsMap[method].length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">No matching policies found.</p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </main>
 
