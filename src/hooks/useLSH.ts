@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
-import { handbookChunks } from "@/data/handbookChunks";
+import { ugChunks } from "@/data/Ugchunk";
 import { retrieveTopK, type TFIDFResult } from "@/lib/tfidf";
 import {
   retrieveByMinHash,
@@ -27,7 +27,7 @@ export const DEFAULT_BANDING_CONFIG: LSHBandingConfig = {
 };
 
 export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
-  const docs = useMemo(() => handbookChunks.map((c) => ({ id: c.id, text: c.text })), []);
+  const docs = useMemo(() => ugChunks.map((c) => ({ id: c.id, text: c.text })), []);
 
   const lshIndex = useMemo(
     () => buildLSHIndex(docs, config.numHashes, config.bands, config.rows, config.shingleK),
@@ -94,7 +94,7 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
     minhashTimeMs,
     simhashTimeMs,
     candidateCount,
-    totalDocs: handbookChunks.length,
+    totalDocs: ugChunks.length,
     hasSearched,
     method,
     setMethod,

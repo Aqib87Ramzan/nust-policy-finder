@@ -1,11 +1,11 @@
-import { handbookChunks, type HandbookChunk } from "@/data/handbookChunks";
+import { ugChunks, type Chunk } from "@/data/Ugchunk";
 import type { LSHBandedResult, MinHashResult } from "@/lib/minhash";
 import type { TFIDFResult } from "@/lib/tfidf";
 import type { SimHashResult } from "@/lib/simhash";
 import { BookOpen, FileText, Hash } from "lucide-react";
 
-function getChunk(id: number): HandbookChunk | undefined {
-  return handbookChunks.find((c) => c.id === id);
+function getChunk(id: number): Chunk | undefined {
+  return ugChunks.find((c) => c.id === id);
 }
 
 function rankBadge(rank: number) {
@@ -33,12 +33,12 @@ const Column = ({ title, timeMs, children }: ColumnProps) => (
   </div>
 );
 
-function MiniCard({ rank, chunk, score, scoreLabel }: { rank: number; chunk: HandbookChunk; score: string; scoreLabel: string }) {
+function MiniCard({ rank, chunk, score, scoreLabel }: { rank: number; chunk: Chunk; score: string; scoreLabel: string }) {
   return (
     <div className="rounded-md border border-border bg-card p-3 shadow-sm text-xs">
       <div className="flex items-center gap-2 mb-1.5">
         {rankBadge(rank)}
-        <span className="font-semibold text-foreground truncate">{chunk.section}</span>
+        <span className="font-semibold text-foreground truncate">{chunk.chapter}</span>
       </div>
       <p className="text-foreground/80 leading-relaxed mb-2 line-clamp-3">{chunk.text}</p>
       <div className="flex flex-wrap gap-2 text-muted-foreground mb-1.5">

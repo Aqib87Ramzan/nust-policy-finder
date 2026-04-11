@@ -1,4 +1,4 @@
-import { handbookChunks } from "@/data/handbookChunks";
+import { ugChunks } from "@/data/Ugchunk";
 import { MessageCircleQuestion } from "lucide-react";
 
 const sampleQueries = [
@@ -32,7 +32,7 @@ const Suggestions = ({ onSelect }: SuggestionsProps) => {
         ))}
       </div>
       <p className="text-xs text-muted-foreground mt-6">
-        {handbookChunks.length} policy chunks indexed from NUST handbooks
+        {ugChunks.length} policy chunks indexed from NUST handbooks
       </p>
     </div>
   );
