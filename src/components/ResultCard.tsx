@@ -1,6 +1,6 @@
 import type { LSHBandedResult } from "@/lib/minhash";
-import type { HandbookChunk } from "@/data/handbookChunks";
-import { handbookChunks } from "@/data/handbookChunks";
+import type { Chunk } from "@/data/Ugchunk";
+import { ugChunks } from "@/data/Ugchunk";
 import { BookOpen, FileText, Hash, Zap } from "lucide-react";
 
 interface ResultCardProps {
@@ -8,8 +8,8 @@ interface ResultCardProps {
   rank: number;
 }
 
-function getChunk(id: number): HandbookChunk | undefined {
-  return handbookChunks.find((c) => c.id === id);
+function getChunk(id: number): Chunk | undefined {
+  return ugChunks.find((c) => c.id === id);
 }
 
 function similarityColor(sim: number): string {
@@ -30,7 +30,7 @@ const ResultCard = ({ result, rank }: ResultCardProps) => {
           <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">
             {rank}
           </span>
-          <h3 className="font-display text-lg font-semibold text-foreground">{chunk.section}</h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">{chunk.chapter}</h3>
         </div>
         {result.isCandidateFromLSH && (
           <span className="flex items-center gap-1 rounded-full bg-secondary/30 px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">

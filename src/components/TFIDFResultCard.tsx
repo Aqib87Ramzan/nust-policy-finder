@@ -1,6 +1,6 @@
 import type { TFIDFResult } from "@/lib/tfidf";
-import type { HandbookChunk } from "@/data/handbookChunks";
-import { handbookChunks } from "@/data/handbookChunks";
+import type { Chunk } from "@/data/Ugchunk";
+import { ugChunks } from "@/data/Ugchunk";
 import { BookOpen, FileText, Hash } from "lucide-react";
 
 interface TFIDFResultCardProps {
@@ -8,8 +8,8 @@ interface TFIDFResultCardProps {
   rank: number;
 }
 
-function getChunk(id: number): HandbookChunk | undefined {
-  return handbookChunks.find((c) => c.id === id);
+function getChunk(id: number): Chunk | undefined {
+  return ugChunks.find((c) => c.id === id);
 }
 
 function scoreColor(sim: number): string {
@@ -29,7 +29,7 @@ const TFIDFResultCard = ({ result, rank }: TFIDFResultCardProps) => {
           <span className="flex items-center justify-center h-7 w-7 rounded-full bg-secondary text-secondary-foreground text-xs font-bold">
             {rank}
           </span>
-          <h3 className="font-display text-lg font-semibold text-foreground">{chunk.section}</h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">{chunk.chapter}</h3>
         </div>
         <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
           TF-IDF
