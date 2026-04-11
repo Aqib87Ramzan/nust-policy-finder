@@ -241,8 +241,12 @@ export function lshRetrieve(
     }
   }
 
-  // Score all docs, mark LSH candidates
-  const results: LSHBandedResult[] = docs.map((doc) => ({
+  // If LSH found candidates, only score those; otherwise fall back to all docs
+  const docsToScore = candidateIds.size > 0
+    ? docs.filter((doc) => candidateIds.has(doc.id))
+    : docs;
+
+  const results: LSHBandedResult[] = docsToScore.map((doc) => ({
     docId: doc.id,
     estimatedJaccard: estimateJaccardSimilarity(qSignature, doc.signature),
     exactJaccard: exactJaccardSimilarity(qShingles, doc.shingles),
