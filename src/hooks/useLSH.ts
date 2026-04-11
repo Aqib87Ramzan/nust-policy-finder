@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { ugChunks } from "@/data/Ugchunk";
-import { retrieveTopK, type TFIDFResult } from "@/lib/tfidf";
+import { buildIDF, retrieveTopK, type TFIDFResult } from "@/lib/tfidf";
 import {
   retrieveByMinHash,
   buildLSHIndex,
@@ -8,31 +8,32 @@ import {
   type MinHashResult,
   type LSHBandedResult,
 } from "@/lib/minhash";
-import { simHashRetrieve, type SimHashResult } from "@/lib/simhash";
+import { simHashRetrieve, computeSimHash, type SimHashResult } from "@/lib/simhash";
 
 export type RetrievalMethod = "lsh" | "tfidf" | "minhash" | "simhash";
 
-export interface LSHBandingConfig {
-  numHashes: number;
-  bands: number;
-  rows: number;
-  shingleK: number;
-}
-
-export const DEFAULT_BANDING_CONFIG: LSHBandingConfig = {
-  numHashes: 100,
-  bands: 20,
-  rows: 5,
-  shingleK: 2,
-};
-
-export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
+export function useLSH() {
   const docs = useMemo(() => ugChunks.map((c) => ({ id: c.id, text: c.text })), []);
 
-  const lshIndex = useMemo(
-    () => buildLSHIndex(docs, config.numHashes, config.bands, config.rows, config.shingleK),
-    [docs, config]
-  );
+  // Pre-built indexes
+  const [isIndexing, setIsIndexing] = useState(true);
+  const [idf, setIdf] = useState<Map<string, number>>(new Map());
+  const [lshIndex, setLshIndex] = useState<ReturnType<typeof buildLSHIndex> | null>(null);
+  const [chunkHashes, setChunkHashes] = useState<[number, number][]>([]);
+
+  useEffect(() => {
+    // Build all indexes once at startup
+    const builtIdf = buildIDF(docs);
+    setIdf(builtIdf);
+
+    const builtLsh = buildLSHIndex(docs, 100, 20, 5);
+    setLshIndex(builtLsh);
+
+    const hashes = docs.map((d) => computeSimHash(d.text));
+    setChunkHashes(hashes);
+
+    setIsIndexing(false);
+  }, [docs]);
 
   const [lshResults, setLshResults] = useState<LSHBandedResult[]>([]);
   const [tfidfResults, setTfidfResults] = useState<TFIDFResult[]>([]);
@@ -48,7 +49,7 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
 
   const search = useCallback(
     (query: string, topK = 5) => {
-      if (!query.trim()) {
+      if (!query.trim() || !lshIndex) {
         setLshResults([]);
         setTfidfResults([]);
         setMinhashResults([]);
@@ -57,16 +58,16 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
         return;
       }
 
-      // LSH Banding (built on MinHash foundation)
+      // TF-IDF (uses prebuilt IDF)
+      const tfidf = retrieveTopK(query, docs, idf, topK);
+      setTfidfResults(tfidf.results);
+      setTfidfTimeMs(tfidf.queryTimeMs);
+
+      // LSH Banding (uses prebuilt index)
       const lsh = lshRetrieve(query, lshIndex, topK);
       setLshResults(lsh.results);
       setLshTimeMs(lsh.queryTimeMs);
       setCandidateCount(lsh.candidateCount);
-
-      // TF-IDF baseline
-      const tfidf = retrieveTopK(query, docs, topK);
-      setTfidfResults(tfidf.results);
-      setTfidfTimeMs(tfidf.queryTimeMs);
 
       // Standalone MinHash
       const mh = retrieveByMinHash(query, docs, topK);
@@ -80,7 +81,7 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
 
       setHasSearched(true);
     },
-    [lshIndex, docs]
+    [lshIndex, docs, idf]
   );
 
   return {
@@ -99,5 +100,6 @@ export function useLSH(config: LSHBandingConfig = DEFAULT_BANDING_CONFIG) {
     method,
     setMethod,
     lshIndex,
+    isIndexing,
   };
 }
