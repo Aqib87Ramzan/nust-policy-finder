@@ -103,7 +103,7 @@ export const pgChunks: PGChunk[] = [
     "chapter": "Chapter 2: PG Academic Regulations",
     "page": 6,
     "word_count": 120
-  }
+  },
   {
     "id": 416,
     "text": "the Islamic World (QAIslamic) (8) World Design Organization (WDO) NUST Rankings. NUST actively participates in international university rankings conducted by various esteemed organizations such as Quacquarelli Symonds (QS), Times Higher Education (THE), etc., securing a prominent position both globally and nationally. Over a brief period, the university has garnered global recognition and consistently elevated its rankings, a testament to the dedication of our faculty and staff in enhancing NUST's prestige year after year. (1) QS World Universities Ranking. In the latest QS World University Rankings 2024, NUST holds the 353rd position globally and ranks 2nd among Pakistani Universities. (2) QS Asian Ranking. NUST secures the 64th position in QS Asian. (3) QS Subjects Rankings. NUST emerges as a Comprehensive Multidisciplinary University in the QS World University Rankings released in March 2023, achieving distinction in Broad Subject Areas and Subject Wise Rankings. (a) Broad Subject Areas. NUST excels in various multidisciplinary",
