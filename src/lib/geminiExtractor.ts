@@ -1,7 +1,7 @@
 // Hybrid answer extraction using Google Gemini API
 // Falls back to local algorithm if API fails
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_KEY = "AIzaSyCPBZ0dtNi2rkVY5IBg92R3ROl3VX7F_bg";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 export interface GeminiAnswerResult {
