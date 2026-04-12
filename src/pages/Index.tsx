@@ -10,7 +10,6 @@ import MetricsPanel from "@/components/MetricsPanel";
 import ComparePanel from "@/components/ComparePanel";
 import Suggestions from "@/components/Suggestions";
 import { extractAnswer, filterChunksByQueryType, isPostgraduateQuery } from "@/lib/answerExtractor";
-import { extractAnswerWithGemini, type GeminiAnswerResult } from "@/lib/geminiExtractor";
 import { ugChunks } from "@/data/Ugchunk";
 import { pgChunks } from "@/data/Pgchunks";
 import { GraduationCap, GitCompareArrows, Loader2, Database } from "lucide-react";
@@ -27,8 +26,7 @@ const Index = () => {
   const [topK, setTopK] = useState(3);
   const [showCompare, setShowCompare] = useState(false);
   const [extractedAnswer, setExtractedAnswer] = useState("");
-  const [answerLoading, setAnswerLoading] = useState(false);
-  
+
   const {
     search, lshResults, tfidfResults, minhashResults, simhashResults,
     lshTimeMs, tfidfTimeMs, minhashTimeMs, simhashTimeMs, candidateCount,
@@ -41,7 +39,7 @@ const Index = () => {
     const fullChunks = results
       .map((r) => allChunks.find((c) => c.id === r.docId))
       .filter((c) => c !== undefined);
-    
+
     // Filter and reorder based on query type (master degree queries get PG Handbook first)
     return filterChunksByQueryType(fullChunks, query);
   };
@@ -50,69 +48,40 @@ const Index = () => {
   const filterResultsByQueryType = (results: any[]) => {
     const allChunks = [...ugChunks, ...pgChunks];
     const isPG = isPostgraduateQuery(query);
-    
+
     // Get full chunk info for each result
     const resultsWithChunks = results
-      .map(r => ({...r, chunk: allChunks.find(c => c.id === r.docId)}))
+      .map(r => ({ ...r, chunk: allChunks.find(c => c.id === r.docId) }))
       .filter(r => r.chunk);
-    
+
     if (isPG) {
       // For PG queries, show PG Handbook results first
       const pgResults = resultsWithChunks.filter(r => r.chunk.source === 'PG Handbook');
       const ugResults = resultsWithChunks.filter(r => r.chunk.source === 'UG Handbook');
-      return [...pgResults, ...ugResults].map(({chunk, ...rest}) => rest);
+      return [...pgResults, ...ugResults].map(({ chunk, ...rest }) => rest);
     } else {
       // For general queries, show UG first
       const ugResults = resultsWithChunks.filter(r => r.chunk.source === 'UG Handbook');
       const pgResults = resultsWithChunks.filter(r => r.chunk.source === 'PG Handbook');
-      return [...ugResults, ...pgResults].map(({chunk, ...rest}) => rest);
+      return [...ugResults, ...pgResults].map(({ chunk, ...rest }) => rest);
     }
   };
 
-  // Extract answer using Gemini with fallback to local algorithm
+  // Extract a concise answer directly from the retrieved chunks
   useEffect(() => {
-    const extractAnswerAsync = async () => {
-      // Get current results based on method
-      const currentResults = method === 'tfidf' ? tfidfResults : 
-                            method === 'lsh' ? lshResults : 
-                            method === 'minhash' ? minhashResults : 
-                            simhashResults;
+    const currentResults = method === 'tfidf' ? tfidfResults :
+      method === 'lsh' ? lshResults :
+      method === 'minhash' ? minhashResults :
+      simhashResults;
 
-      if (!hasSearched || !currentResults || currentResults.length === 0) {
-        setExtractedAnswer("");
-        return;
-      }
+    if (!hasSearched || !currentResults || currentResults.length === 0) {
+      setExtractedAnswer("");
+      return;
+    }
 
-      setAnswerLoading(true);
-      const chunks = getFullChunksFromResults(currentResults as any[]);
-      
-      // Debug: Check chunk structure
-      console.log("📋 Chunks retrieved:", chunks.length);
-      if (chunks.length > 0) {
-        console.log("First chunk structure:", chunks[0]);
-      }
-
-      try {
-        // Use ONLY Gemini for answer extraction (no local fallback)
-        const geminiResult = await extractAnswerWithGemini(query, chunks);
-        console.log("🤖 Gemini result:", geminiResult);
-        
-        if (geminiResult && geminiResult.answer) {
-          console.log("✅ Gemini provided answer");
-          setExtractedAnswer(geminiResult.answer);
-        } else {
-          console.log("⚠️ No answer found");
-          setExtractedAnswer(""); // Don't show anything if Gemini can't answer
-        }
-      } catch (error) {
-        console.error("❌ Gemini API error:", error);
-        setExtractedAnswer(""); // Don't show anything on error
-      } finally {
-        setAnswerLoading(false);
-      }
-    };
-
-    extractAnswerAsync();
+    const chunks = getFullChunksFromResults(currentResults as any[]);
+    const answer = extractAnswer(query, chunks);
+    setExtractedAnswer(answer);
   }, [hasSearched, method, tfidfResults, lshResults, minhashResults, simhashResults, query]);
 
   const handleSearch = () => {
@@ -248,23 +217,11 @@ const Index = () => {
             {/* Single-method results */}
             {hasSearched && !showCompare && (
               <div className="space-y-4">
-                {/* Answer Box with Gemini + Local Hybrid Approach + Supporting Evidence */}
-                {resultsMap[method].length > 0 && (
-                  <>
-                    {answerLoading && (
-                      <div className="rounded-lg border-l-4 border-green-500 bg-green-50 p-5 shadow-sm mb-6 flex items-center gap-3">
-                        <Loader2 className="h-5 w-5 text-green-600 animate-spin" />
-                        <p className="text-sm text-green-700 font-medium">Generating precise answer...</p>
-                      </div>
-                    )}
-                    {!answerLoading && extractedAnswer && (
-                      <>
-                        <AnswerBox answer={extractedAnswer} />
-                      </>
-                    )}
-                  </>
+                {/* Answer Box generated from the retrieved chunks */}
+                {resultsMap[method].length > 0 && extractedAnswer && (
+                  <AnswerBox answer={extractedAnswer} />
                 )}
-                
+
                 {method === "lsh" && filterResultsByQueryType(lshResults).map((r, i) => (
                   <ResultCard key={r.docId} result={r} rank={i + 1} query={query} />
                 ))}
