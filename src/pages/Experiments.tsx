@@ -97,8 +97,11 @@ const Experiments = () => {
     for (let i = 0; i < TEST_QUERIES.length; i++) {
       const q = TEST_QUERIES[i];
       const t1 = retrieveTopK(q, docs, idf, 3);
+      await yieldToUI();
       const t2 = retrieveByMinHash(q, docs, 3);
+      await yieldToUI();
       const t3 = simHashRetrieve(q, docs, 3);
+      await yieldToUI();
       tfidfLatencies.push(t1.queryTimeMs);
       mhLatencies.push(t2.queryTimeMs);
       shLatencies.push(t3.queryTimeMs);
