@@ -77,14 +77,15 @@ const Experiments = () => {
   const [s3, setS3] = useState<Section3Data | null>(null);
   const [s4, setS4] = useState<Section4Data | null>(null);
 
+  const yieldToUI = () => new Promise((r) => setTimeout(r, 0));
+
   const runExperiments = useCallback(async () => {
     setRunning(true);
     setDone(false);
     setProgress(0);
     const t0 = performance.now();
 
-    // Allow UI to update
-    await new Promise((r) => setTimeout(r, 50));
+    await yieldToUI();
 
     // ── SECTION 1 ──
     const idf = buildIDF(docs);
@@ -96,8 +97,11 @@ const Experiments = () => {
     for (let i = 0; i < TEST_QUERIES.length; i++) {
       const q = TEST_QUERIES[i];
       const t1 = retrieveTopK(q, docs, idf, 3);
+      await yieldToUI();
       const t2 = retrieveByMinHash(q, docs, 3);
+      await yieldToUI();
       const t3 = simHashRetrieve(q, docs, 3);
+      await yieldToUI();
       tfidfLatencies.push(t1.queryTimeMs);
       mhLatencies.push(t2.queryTimeMs);
       shLatencies.push(t3.queryTimeMs);
@@ -136,6 +140,7 @@ const Experiments = () => {
         const r = retrieveByMinHash(q, docs, 3, h);
         totalLat += r.queryTimeMs;
         totalCand += r.results.length;
+        await yieldToUI();
       }
       hashFnData.push({ hashFns: h, avgLatency: +(totalLat / TEST_QUERIES.length).toFixed(2), candidates: Math.round(totalCand / TEST_QUERIES.length) });
     }
@@ -153,6 +158,7 @@ const Experiments = () => {
         totalLat += r.queryTimeMs;
       }
       bandsData.push({ bands: b, candidates: Math.round(totalCand / TEST_QUERIES.length), latency: +(totalLat / TEST_QUERIES.length).toFixed(2) });
+      await yieldToUI();
     }
 
     const hammingValues = [10, 20, 25, 30, 35, 40, 50];
@@ -166,6 +172,7 @@ const Experiments = () => {
         totalLat += r.queryTimeMs;
       }
       hammingData.push({ threshold: th, results: Math.round(totalRes / TEST_QUERIES.length), latency: +(totalLat / TEST_QUERIES.length).toFixed(2) });
+      await yieldToUI();
     }
 
     setS2({ hashFnData, bandsData, hammingData });
@@ -187,8 +194,11 @@ const Experiments = () => {
       let tL = 0, mL = 0, sL = 0;
       for (const q of scaleQueries) {
         tL += retrieveTopK(q, subset, subIdf, 3).queryTimeMs;
+        await yieldToUI();
         mL += retrieveByMinHash(q, subset, 3).queryTimeMs;
+        await yieldToUI();
         sL += simHashRetrieve(q, subset, 3).queryTimeMs;
+        await yieldToUI();
       }
       scalability.push({
         size,
