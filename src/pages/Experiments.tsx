@@ -158,6 +158,7 @@ const Experiments = () => {
         totalLat += r.queryTimeMs;
       }
       bandsData.push({ bands: b, candidates: Math.round(totalCand / TEST_QUERIES.length), latency: +(totalLat / TEST_QUERIES.length).toFixed(2) });
+      await yieldToUI();
     }
 
     const hammingValues = [10, 20, 25, 30, 35, 40, 50];
