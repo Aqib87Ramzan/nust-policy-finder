@@ -172,6 +172,7 @@ const Experiments = () => {
         totalLat += r.queryTimeMs;
       }
       hammingData.push({ threshold: th, results: Math.round(totalRes / TEST_QUERIES.length), latency: +(totalLat / TEST_QUERIES.length).toFixed(2) });
+      await yieldToUI();
     }
 
     setS2({ hashFnData, bandsData, hammingData });
