@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useLSH, type RetrievalMethod } from "@/hooks/useLSH";
 import SearchBar from "@/components/SearchBar";
 import ResultCard from "@/components/ResultCard";
@@ -112,10 +113,13 @@ const Index = () => {
           <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary-foreground/15 backdrop-blur">
             <GraduationCap className="h-6 w-6" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold leading-tight">NUST Academic Policy QA System</h1>
             <p className="text-sm opacity-80">Powered by LSH-based Retrieval</p>
           </div>
+          <Link to="/experiments" className="px-4 py-2 rounded-lg bg-primary-foreground/15 hover:bg-primary-foreground/25 text-sm font-medium transition-colors backdrop-blur">
+            📊 Experiments
+          </Link>
         </div>
       </header>
 
