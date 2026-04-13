@@ -140,6 +140,7 @@ const Experiments = () => {
         const r = retrieveByMinHash(q, docs, 3, h);
         totalLat += r.queryTimeMs;
         totalCand += r.results.length;
+        await yieldToUI();
       }
       hashFnData.push({ hashFns: h, avgLatency: +(totalLat / TEST_QUERIES.length).toFixed(2), candidates: Math.round(totalCand / TEST_QUERIES.length) });
     }
