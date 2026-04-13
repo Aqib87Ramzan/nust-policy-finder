@@ -77,14 +77,15 @@ const Experiments = () => {
   const [s3, setS3] = useState<Section3Data | null>(null);
   const [s4, setS4] = useState<Section4Data | null>(null);
 
+  const yieldToUI = () => new Promise((r) => setTimeout(r, 0));
+
   const runExperiments = useCallback(async () => {
     setRunning(true);
     setDone(false);
     setProgress(0);
     const t0 = performance.now();
 
-    // Allow UI to update
-    await new Promise((r) => setTimeout(r, 50));
+    await yieldToUI();
 
     // ── SECTION 1 ──
     const idf = buildIDF(docs);
