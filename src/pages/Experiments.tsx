@@ -194,8 +194,11 @@ const Experiments = () => {
       let tL = 0, mL = 0, sL = 0;
       for (const q of scaleQueries) {
         tL += retrieveTopK(q, subset, subIdf, 3).queryTimeMs;
+        await yieldToUI();
         mL += retrieveByMinHash(q, subset, 3).queryTimeMs;
+        await yieldToUI();
         sL += simHashRetrieve(q, subset, 3).queryTimeMs;
+        await yieldToUI();
       }
       scalability.push({
         size,
