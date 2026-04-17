@@ -1,5 +1,4 @@
 import { ugChunks } from "@/data/Ugchunk";
-import { pgChunks } from "@/data/Pgchunks";
 import { MessageCircleQuestion } from "lucide-react";
 
 const sampleQueries = [
@@ -33,7 +32,7 @@ const Suggestions = ({ onSelect }: SuggestionsProps) => {
         ))}
       </div>
       <p className="text-xs text-muted-foreground mt-6">
-        {ugChunks.length + pgChunks.length} policy chunks indexed from NUST handbooks
+        {ugChunks.length} policy chunks indexed from NUST handbook
       </p>
     </div>
   );

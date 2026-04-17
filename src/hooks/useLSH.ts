@@ -1,6 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { ugChunks } from "@/data/Ugchunk";
-import { pgChunks } from "@/data/Pgchunks";
 import { buildIDF, retrieveTopK, type TFIDFResult } from "@/lib/tfidf";
 import {
   retrieveByMinHash,
@@ -15,7 +14,7 @@ export type RetrievalMethod = "lsh" | "tfidf" | "minhash" | "simhash";
 
 export function useLSH() {
   // Combine both UG and PG chunks for comprehensive search
-  const allChunks = useMemo(() => [...ugChunks, ...pgChunks], []);
+  const allChunks = useMemo(() => [...ugChunks], []);
   const docs = useMemo(() => allChunks.map((c) => ({ id: c.id, text: c.text })), [allChunks]);
 
   // Pre-built indexes

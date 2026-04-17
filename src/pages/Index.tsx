@@ -12,7 +12,6 @@ import ComparePanel from "@/components/ComparePanel";
 import Suggestions from "@/components/Suggestions";
 import { extractAnswer, filterChunksByQueryType, isPostgraduateQuery } from "@/lib/answerExtractor";
 import { ugChunks } from "@/data/Ugchunk";
-import { pgChunks } from "@/data/Pgchunks";
 import { GraduationCap, GitCompareArrows, Loader2, Database } from "lucide-react";
 
 const methods: { value: RetrievalMethod; label: string }[] = [
@@ -36,7 +35,7 @@ const Index = () => {
 
   // Helper to get full chunk data from results (search both UG and PG)
   const getFullChunksFromResults = (results: any[]) => {
-    const allChunks = [...ugChunks, ...pgChunks];
+    const allChunks = [...ugChunks];
     const fullChunks = results
       .map((r) => allChunks.find((c) => c.id === r.docId))
       .filter((c) => c !== undefined);
@@ -47,7 +46,7 @@ const Index = () => {
 
   // Filter results to prioritize relevant handbook based on query
   const filterResultsByQueryType = (results: any[]) => {
-    const allChunks = [...ugChunks, ...pgChunks];
+    const allChunks = [...ugChunks];
     const isPG = isPostgraduateQuery(query);
 
     // Get full chunk info for each result

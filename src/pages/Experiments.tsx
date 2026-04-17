@@ -10,7 +10,6 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { ugChunks } from "@/data/Ugchunk";
-import { pgChunks } from "@/data/Pgchunks";
 import { buildIDF, retrieveTopK } from "@/lib/tfidf";
 import { retrieveByMinHash, buildLSHIndex, lshRetrieve } from "@/lib/minhash";
 import { simHashRetrieve } from "@/lib/simhash";
@@ -64,7 +63,7 @@ interface Section4Data {
 }
 
 const Experiments = () => {
-  const allChunks = useMemo(() => [...ugChunks, ...pgChunks], []);
+  const allChunks = useMemo(() => [...ugChunks], []);
   const docs = useMemo(() => allChunks.map((c) => ({ id: c.id, text: c.text })), [allChunks]);
 
   const [running, setRunning] = useState(false);
