@@ -5,8 +5,7 @@ const sampleQueries = [
   "What is the minimum GPA requirement?",
   "What happens if a student fails a course?",
   "What is the attendance policy?",
-  "How many times can a course be repeated?",
-  "What are the PhD publication requirements?",
+  "How many times can a course be repeated?"
 ];
 
 interface SuggestionsProps {
