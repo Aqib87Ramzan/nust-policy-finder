@@ -1,7 +1,6 @@
 import type { LSHBandedResult } from "@/lib/minhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";
-import { pgChunks } from "@/data/Pgchunks";
 import { BookOpen, FileText, Hash, Zap } from "lucide-react";
 import { getQueryWords } from "@/lib/answerExtractor";
 import { HighlightedText } from "@/lib/highlightExtractor";
@@ -13,7 +12,7 @@ interface ResultCardProps {
 }
 
 function getChunk(id: number): Chunk | undefined {
-  const allChunks = [...ugChunks, ...pgChunks];
+  const allChunks = [...ugChunks];
   return allChunks.find((c) => c.id === id);
 }
 
