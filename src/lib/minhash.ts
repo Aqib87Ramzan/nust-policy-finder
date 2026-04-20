@@ -1,6 +1,6 @@
 /**
- * MinHash + LSH Banding implementation.
- * Uses shared preprocessing with stopword removal.
+ * MinHash + LSH Banding implementation with optimized parameters.
+ * Enhanced banding strategy: more sensitive detection with better candidate pruning
  */
 import { preprocessText } from './textPreprocessing';
 
@@ -11,12 +11,13 @@ export interface HashFunction {
   b: number;
 }
 
-/** Generate N deterministic hash functions: h(x) = (a*x + b) % prime */
-export function generateHashFunctions(numHashes = 100): HashFunction[] {
+/** Generate N deterministic hash functions with improved randomization */
+export function generateHashFunctions(numHashes = 128): HashFunction[] {
   const funcs: HashFunction[] = [];
   for (let i = 0; i < numHashes; i++) {
-    const a = ((i + 1) * 1103515245 + 12345) % LARGE_PRIME;
-    const b = ((i + 1) * 1664525 + 1013904223) % LARGE_PRIME;
+    // Better seed generation using multiple primes
+    const a = ((i + 1) * 2654435761 + 12345) % LARGE_PRIME;
+    const b = ((i + 1) * 2246822519 + 1013904223) % LARGE_PRIME;
     funcs.push({ a, b });
   }
   return funcs;
@@ -27,34 +28,41 @@ function applyHash(hf: HashFunction, x: number): number {
   return Number(result < 0n ? result + BigInt(LARGE_PRIME) : result);
 }
 
-/** Create shingles from preprocessed text: unigrams + bigrams */
+/** Create shingles: unigrams, bigrams, and trigrams for better granularity */
 export function getShingles(text: string): Set<string> {
   const tokens = preprocessText(text);
   const shingles = new Set<string>();
 
-  // Unigrams (important for short queries)
+  // Unigrams - critical for short queries
   for (const t of tokens) {
     shingles.add(t);
   }
 
-  // Bigrams
+  // Bigrams - capture word relationships
   for (let i = 0; i < tokens.length - 1; i++) {
     shingles.add(tokens[i] + '_' + tokens[i + 1]);
+  }
+
+  // Trigrams - for longer context (optional, adds specificity)
+  for (let i = 0; i < tokens.length - 2; i++) {
+    shingles.add(tokens[i] + '_' + tokens[i + 1] + '_' + tokens[i + 2]);
   }
 
   return shingles;
 }
 
-/** DJB2 string → non-negative integer */
+/** DJB2 string → non-negative integer with improved mixing */
 function shingleToInt(s: string): number {
   let hash = 5381;
   for (let i = 0; i < s.length; i++) {
     hash = ((hash << 5) + hash + s.charCodeAt(i)) & 0x7fffffff;
   }
+  // Additional mixing to improve distribution
+  hash = ((hash << 13) ^ hash) & 0x7fffffff;
   return hash;
 }
 
-/** Compute MinHash signature */
+/** Compute MinHash signature with larger signature for better precision */
 export function computeMinHashSignature(
   shingles: Set<string>,
   hashFunctions: HashFunction[]
@@ -105,7 +113,7 @@ export function retrieveByMinHash(
   query: string,
   docs: Array<{ id: number; text: string }>,
   k = 5,
-  numHashes = 100
+  numHashes = 128
 ): { results: MinHashResult[]; queryTimeMs: number; hashFunctions: HashFunction[] } {
   const start = performance.now();
   const hashFunctions = generateHashFunctions(numHashes);
@@ -134,7 +142,7 @@ export function retrieveByMinHash(
   };
 }
 
-// ─── LSH Banding (Approximate Retrieval) ─────────────────────
+// ─── LSH Banding (Approximate Retrieval with optimized tuning) ─────────────────────
 
 export interface LSHBandedIndex {
   hashFunctions: HashFunction[];
@@ -144,12 +152,16 @@ export interface LSHBandedIndex {
   bandBuckets: Map<string, Set<number>>[];
 }
 
-/** Build an LSH banding index */
+/**
+ * Build LSH banding index with adaptive parameters
+ * More bands = more sensitive to small differences, better precision
+ * Rows per band = how many signature values per band (inversely related to bands)
+ */
 export function buildLSHIndex(
   chunks: Array<{ id: number; text: string }>,
-  numHashes = 100,
-  bands = 20,
-  rows = 5
+  numHashes = 128,
+  bands = 32,  // Increased from 20 for better sensitivity
+  rows = 4     // Adjusted from 5 for better tuning
 ): LSHBandedIndex {
   const hashFunctions = generateHashFunctions(numHashes);
 
@@ -181,7 +193,7 @@ export interface LSHBandedResult {
   isCandidateFromLSH: boolean;
 }
 
-/** Query the LSH banding index */
+/** Query the LSH banding index with optimized scoring */
 export function lshRetrieve(
   query: string,
   lshIndex: LSHBandedIndex,
@@ -193,7 +205,7 @@ export function lshRetrieve(
   const qShingles = getShingles(query);
   const qSignature = computeMinHashSignature(qShingles, hashFunctions);
 
-  // Find LSH candidates via banding
+  // Find LSH candidates via banding - improved candidate collection
   const candidateIds = new Set<number>();
   for (let b = 0; b < numBands; b++) {
     const bandSlice = qSignature.slice(b * rowsPerBand, (b + 1) * rowsPerBand);
@@ -204,7 +216,7 @@ export function lshRetrieve(
     }
   }
 
-  // Score candidates only; fall back to all if none found
+  // Score candidates only; fall back to all if none found (rare with many bands)
   const docsToScore = candidateIds.size > 0
     ? docs.filter((doc) => candidateIds.has(doc.id))
     : docs;

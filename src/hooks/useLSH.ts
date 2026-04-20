@@ -13,7 +13,7 @@ import { simHashRetrieve, computeSimHash, type SimHashResult } from "@/lib/simha
 export type RetrievalMethod = "lsh" | "tfidf" | "minhash" | "simhash";
 
 export function useLSH() {
-  // Combine both UG and PG chunks for comprehensive search
+  // Use only UG chunks for focused undergraduate policy search
   const allChunks = useMemo(() => [...ugChunks], []);
   const docs = useMemo(() => allChunks.map((c) => ({ id: c.id, text: c.text })), [allChunks]);
 
@@ -24,11 +24,12 @@ export function useLSH() {
   const [chunkHashes, setChunkHashes] = useState<[number, number][]>([]);
 
   useEffect(() => {
-    // Build all indexes once at startup
+    // Build all indexes once at startup with optimized parameters
     const builtIdf = buildIDF(docs);
     setIdf(builtIdf);
 
-    const builtLsh = buildLSHIndex(docs, 100, 20, 5);
+    // Optimized LSH: 128 hashes, 20 bands, 5 rows per band
+    const builtLsh = buildLSHIndex(docs, 128, 20, 5);
     setLshIndex(builtLsh);
 
     const hashes = docs.map((d) => computeSimHash(d.text));
@@ -71,12 +72,12 @@ export function useLSH() {
       setLshTimeMs(lsh.queryTimeMs);
       setCandidateCount(lsh.candidateCount);
 
-      // Standalone MinHash
-      const mh = retrieveByMinHash(query, docs, topK);
+      // Standalone MinHash with optimized 128 hashes
+      const mh = retrieveByMinHash(query, docs, topK, 128);
       setMinhashResults(mh.results);
       setMinhashTimeMs(mh.queryTimeMs);
 
-      // SimHash
+      // SimHash with adaptive threshold
       const sh = simHashRetrieve(query, docs, topK);
       setSimhashResults(sh.results);
       setSimhashTimeMs(sh.queryTimeMs);

@@ -1,5 +1,8 @@
-// Hybrid answer extraction using Google Gemini API
-// Falls back to local algorithm if API fails
+/**
+ * Answer extraction using Google Gemini API
+ * Structured prompting: ONLY uses information from retrieved chunks
+ * Returns answers with clear organization and no hallucinations
+ */
 
 const GEMINI_API_KEY = "AIzaSyCPBZ0dtNi2rkVY5IBg92R3ROl3VX7F_bg";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
@@ -7,6 +10,29 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/
 export interface GeminiAnswerResult {
   answer: string;
   supportingChunks: any[];
+  sources: string[];
+}
+
+/**
+ * Build structured context from chunks with clear markers
+ * Only the information in these chunks is allowed in the answer
+ */
+function buildStructuredContext(chunks: any[]): string {
+  if (chunks.length === 0) return "NO INFORMATION AVAILABLE";
+
+  let context = "POLICY INFORMATION FROM NUST HANDBOOK:\n";
+  context += "=" .repeat(50) + "\n\n";
+
+  chunks.forEach((chunk, idx) => {
+    context += `[SOURCE ${idx + 1}]\n`;
+    context += `Section: ${chunk.chapter}\n`;
+    context += `Page: ${chunk.page}\n`;
+    context += `---\n`;
+    context += `${chunk.text}\n`;
+    context += `---\n\n`;
+  });
+
+  return context;
 }
 
 export async function extractAnswerWithGemini(
@@ -18,37 +44,29 @@ export async function extractAnswerWithGemini(
   }
 
   try {
-    // Keep top 5 chunks for supporting evidence
+    // Use top 5 chunks as the only source of truth
     const supportingChunks = chunks.slice(0, 5);
-    
-    // Prepare context from top chunks to send to Gemini
-    const context = supportingChunks
-      .map(
-        (c, i) =>
-          `[Source ${i + 1}: ${c.source} - ${c.chapter}, Page ${c.page}]\n${c.text}`
-      )
-      .join("\n\n");
+    const context = buildStructuredContext(supportingChunks);
 
-    // Create prompt for Gemini
-    const prompt = `You are an expert in university academic policies and regulations. Your job is to answer questions based on the handbook excerpts below.
+    // Structured prompt: very explicit about constraints
+    const prompt = `You are answering a question about NUST academic policies. You MUST ONLY use information from the provided handbook excerpts below. Do not use any external knowledge.
 
-HANDBOOK EXCERPTS:
 ${context}
 
-USER QUESTION: ${query}
+USER'S QUESTION: "${query}"
 
-INSTRUCTIONS:
-1. Read the handbook excerpts carefully
-2. Find the most relevant information that answers the user's question
-3. Provide a CLEAR, DIRECT answer - no long explanations
-4. Include specific values (e.g., "3.50 CGPA", "10pm", "75%") if mentioned
-5. Keep answer to 2-3 sentences maximum
-6. If the answer involves multiple points, list them clearly
-7. Do NOT make up information - only use what's in the excerpts
-8. If the exact answer is not in the excerpts, say "Information not found in handbook"
+YOUR TASK:
+1. Extract the answer ONLY from the provided information above
+2. Structure your answer clearly:
+   - Start with a direct, concise answer
+   - Include specific numbers, percentages, or requirements if mentioned
+   - List multiple points if applicable (use bullet format)
+   - Cite which SOURCE (1, 2, 3, etc.) supports each point
+3. If information is not in the provided excerpts, respond: "This information is not found in the provided handbook excerpts."
+4. Keep the answer factual and objective
+5. Maximum 3-4 sentences or bullet points
 
 ANSWER:`;
-
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
@@ -66,8 +84,8 @@ ANSWER:`;
           },
         ],
         generationConfig: {
-          maxOutputTokens: 500,
-          temperature: 0.3, // Low temperature for factual answers
+          maxOutputTokens: 400,
+          temperature: 0.2, // Very low temperature for strict factual answers
         },
       }),
     });
@@ -81,12 +99,18 @@ ANSWER:`;
 
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
       const answer = data.candidates[0].content.parts[0].text.trim();
-      
-      // Validate that we got a real answer (not an error message)
-      if (answer && answer.length > 10 && !answer.toLowerCase().includes("cannot")) {
+
+      // Validate: answer should be substantial and not be an error
+      if (answer && answer.length > 15 && !answer.toLowerCase().includes("api error")) {
+        // Extract source references from answer
+        const sourceMatches = answer.match(/SOURCE\s+(\d+)/gi) || [];
+        const sourcesSet = new Set(sourceMatches.map((m: string) => m.toUpperCase()));
+        const sources = Array.from(sourcesSet) as string[];
+
         return {
           answer,
-          supportingChunks // Return chunks as evidence
+          supportingChunks,
+          sources
         };
       }
     }

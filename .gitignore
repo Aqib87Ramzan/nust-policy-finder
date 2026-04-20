@@ -14,7 +14,7 @@ dist-ssr
 
 # Never commit your Gemini API key or any other secrets!
 .env
-
+.Revised-Undergraduate-Handbook.pdf
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,3 +25,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.opencode/*

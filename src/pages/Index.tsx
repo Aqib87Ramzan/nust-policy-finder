@@ -10,7 +10,8 @@ import AnswerBox from "@/components/AnswerBox";
 import MetricsPanel from "@/components/MetricsPanel";
 import ComparePanel from "@/components/ComparePanel";
 import Suggestions from "@/components/Suggestions";
-import { extractAnswer, filterChunksByQueryType, isPostgraduateQuery } from "@/lib/answerExtractor";
+import { extractAnswer } from "@/lib/answerExtractor";
+import { extractAnswerWithGemini } from "@/lib/geminiExtractor";
 import { ugChunks } from "@/data/Ugchunk";
 import { GraduationCap, GitCompareArrows, Loader2, Database } from "lucide-react";
 
@@ -26,6 +27,7 @@ const Index = () => {
   const [topK, setTopK] = useState(3);
   const [showCompare, setShowCompare] = useState(false);
   const [extractedAnswer, setExtractedAnswer] = useState("");
+  const [isExtractingAnswer, setIsExtractingAnswer] = useState(false);
 
   const {
     search, lshResults, tfidfResults, minhashResults, simhashResults,
@@ -33,42 +35,17 @@ const Index = () => {
     totalDocs, hasSearched, method, setMethod, isIndexing,
   } = useLSH();
 
-  // Helper to get full chunk data from results (search both UG and PG)
+  // Helper to get full chunk data from results
   const getFullChunksFromResults = (results: any[]) => {
-    const allChunks = [...ugChunks];
     const fullChunks = results
-      .map((r) => allChunks.find((c) => c.id === r.docId))
+      .map((r) => ugChunks.find((c) => c.id === r.docId))
       .filter((c) => c !== undefined);
-
-    // Filter and reorder based on query type (master degree queries get PG Handbook first)
-    return filterChunksByQueryType(fullChunks, query);
-  };
-
-  // Filter results to prioritize relevant handbook based on query
-  const filterResultsByQueryType = (results: any[]) => {
-    const allChunks = [...ugChunks];
-    const isPG = isPostgraduateQuery(query);
-
-    // Get full chunk info for each result
-    const resultsWithChunks = results
-      .map(r => ({ ...r, chunk: allChunks.find(c => c.id === r.docId) }))
-      .filter(r => r.chunk);
-
-    if (isPG) {
-      // For PG queries, show PG Handbook results first
-      const pgResults = resultsWithChunks.filter(r => r.chunk.source === 'PG Handbook');
-      const ugResults = resultsWithChunks.filter(r => r.chunk.source === 'UG Handbook');
-      return [...pgResults, ...ugResults].map(({ chunk, ...rest }) => rest);
-    } else {
-      // For general queries, show UG first
-      const ugResults = resultsWithChunks.filter(r => r.chunk.source === 'UG Handbook');
-      const pgResults = resultsWithChunks.filter(r => r.chunk.source === 'PG Handbook');
-      return [...ugResults, ...pgResults].map(({ chunk, ...rest }) => rest);
-    }
+    return fullChunks;
   };
 
   // Extract a concise answer directly from the retrieved chunks
   useEffect(() => {
+    let active = true;
     const currentResults = method === 'tfidf' ? tfidfResults :
       method === 'lsh' ? lshResults :
       method === 'minhash' ? minhashResults :
@@ -79,9 +56,38 @@ const Index = () => {
       return;
     }
 
-    const chunks = getFullChunksFromResults(currentResults as any[]);
-    const answer = extractAnswer(query, chunks);
-    setExtractedAnswer(answer);
+    const fetchAnswer = async () => {
+      setIsExtractingAnswer(true);
+      const chunks = getFullChunksFromResults(currentResults as any[]);
+      
+      // Fallback to local heuristic extraction
+      const fallbackAnswer = extractAnswer(query, chunks);
+      
+      try {
+        const geminiResult = await extractAnswerWithGemini(query, chunks);
+        if (active) {
+          if (geminiResult && geminiResult.answer) {
+            setExtractedAnswer(geminiResult.answer);
+          } else {
+            setExtractedAnswer(fallbackAnswer);
+          }
+        }
+      } catch (error) {
+        if (active) {
+          setExtractedAnswer(fallbackAnswer);
+        }
+      } finally {
+        if (active) {
+          setIsExtractingAnswer(false);
+        }
+      }
+    };
+    
+    fetchAnswer();
+    
+    return () => {
+      active = false;
+    };
   }, [hasSearched, method, tfidfResults, lshResults, minhashResults, simhashResults, query]);
 
   const handleSearch = () => {
@@ -221,20 +227,27 @@ const Index = () => {
             {hasSearched && !showCompare && (
               <div className="space-y-4">
                 {/* Answer Box generated from the retrieved chunks */}
-                {resultsMap[method].length > 0 && extractedAnswer && (
-                  <AnswerBox answer={extractedAnswer} />
+                {resultsMap[method].length > 0 && (extractedAnswer || isExtractingAnswer) && (
+                  isExtractingAnswer ? (
+                    <div className="rounded-lg border-l-4 border-green-500 bg-green-50 p-5 shadow-sm mb-6 flex items-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                      <span className="text-sm font-medium text-green-900">Synthesizing Answer with Gemini AI...</span>
+                    </div>
+                  ) : (
+                    <AnswerBox answer={extractedAnswer} />
+                  )
                 )}
 
-                {method === "lsh" && filterResultsByQueryType(lshResults).map((r, i) => (
+                {method === "lsh" && lshResults.map((r, i) => (
                   <ResultCard key={r.docId} result={r} rank={i + 1} query={query} />
                 ))}
-                {method === "tfidf" && filterResultsByQueryType(tfidfResults).map((r, i) => (
+                {method === "tfidf" && tfidfResults.map((r, i) => (
                   <TFIDFResultCard key={r.docId} result={r} rank={i + 1} query={query} />
                 ))}
-                {method === "minhash" && filterResultsByQueryType(minhashResults).map((r, i) => (
+                {method === "minhash" && minhashResults.map((r, i) => (
                   <MinHashResultCard key={r.docId} result={r} rank={i + 1} query={query} />
                 ))}
-                {method === "simhash" && filterResultsByQueryType(simhashResults).map((r, i) => (
+                {method === "simhash" && simhashResults.map((r, i) => (
                   <SimHashResultCard key={r.docId} result={r} rank={i + 1} query={query} />
                 ))}
                 {resultsMap[method].length === 0 && (

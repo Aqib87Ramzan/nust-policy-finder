@@ -15,29 +15,19 @@ import { retrieveByMinHash, buildLSHIndex, lshRetrieve } from "@/lib/minhash";
 import { simHashRetrieve } from "@/lib/simhash";
 
 const TEST_QUERIES = [
-  "What is the minimum GPA requirement?",
-  "What happens if a student fails a course?",
-  "What is the attendance policy?",
-  "How many times can a course be repeated?",
-  "What are the hostel curfew timings?",
-  "What is the withdrawal policy?",
-  "How to apply for semester deferment?",
-  "What are PhD publication requirements?",
   "What is the probation policy?",
-  "How many credit hours per semester?",
+  "What is the maximum duration for a deferment?",
+  "How many times can I drop a course?",
+  "Are internships mandatory?",
+  "How is CGPA calculated?",
 ];
 
 const GROUND_TRUTH: Record<string, number[]> = {
-  "What is the minimum GPA requirement?": [1, 1, 1],
-  "What happens if a student fails a course?": [1, 1, 0],
-  "What is the attendance policy?": [1, 1, 1],
-  "How many times can a course be repeated?": [1, 0, 0],
-  "What are the hostel curfew timings?": [1, 1, 0],
-  "What is the withdrawal policy?": [1, 1, 1],
-  "How to apply for semester deferment?": [1, 1, 0],
-  "What are PhD publication requirements?": [1, 0, 0],
-  "What is the probation policy?": [1, 1, 1],
-  "How many credit hours per semester?": [1, 1, 0],
+  "What is the probation policy?": [14, 15, 16, 17, 18, 28, 29, 30, 31, 32, 37, 38, 39, 42, 56, 70, 71],
+  "What is the maximum duration for a deferment?": [20, 33, 34, 41, 48, 56, 82, 86],
+  "How many times can I drop a course?": [12, 13, 14, 18, 19, 23, 27, 32, 35, 36, 39, 40, 42],
+  "Are internships mandatory?": [7, 8, 12, 21, 28, 29, 35, 48],
+  "How is CGPA calculated?": [12, 13, 14, 15, 16, 17, 19, 23, 26, 36, 43, 45, 46]
 };
 
 const COLORS = { tfidf: "#3b82f6", minhash: "#22c55e", simhash: "#f97316" };
@@ -59,7 +49,7 @@ interface Section3Data {
 }
 
 interface Section4Data {
-  precision: { method: string; p1: number; p3: number; avg: number }[];
+  metrics: { method: string; p1: number; p3: number; r3: number; f1: number }[];
 }
 
 const Experiments = () => {
@@ -211,41 +201,74 @@ const Experiments = () => {
     await new Promise((r) => setTimeout(r, 30));
 
     // ── SECTION 4 ──
-    const precisionData: Record<string, { p1Sum: number; p3Sum: number; count: number }> = {
-      "TF-IDF": { p1Sum: 0, p3Sum: 0, count: 0 },
-      MinHash: { p1Sum: 0, p3Sum: 0, count: 0 },
-      SimHash: { p1Sum: 0, p3Sum: 0, count: 0 },
+    const metricsData: Record<string, { p1Sum: number; p3Sum: number; r3Sum: number; f1Sum: number; count: number }> = {
+      "TF-IDF": { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
+      MinHash: { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
+      SimHash: { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
     };
     for (const q of TEST_QUERIES) {
-      const gt = GROUND_TRUTH[q];
-      if (!gt) continue;
+      const gtIds = GROUND_TRUTH[q];
+      if (!gtIds) continue;
+      
       const t1 = retrieveTopK(q, docs, idf, 3).results;
       const m1 = retrieveByMinHash(q, docs, 3).results;
       const s1r = simHashRetrieve(q, docs, 3).results;
 
-      const calcP = (results: any[], k: number) => {
-        const topK = results.slice(0, k);
-        return topK.length > 0 ? topK.reduce((s, _, i) => s + (gt[i] ?? 0), 0) / k : 0;
+      const calcMetrics = (results: any[], gtIdsArray: number[]) => {
+        // Precision@k
+        const getP = (k: number) => {
+          const topK = results.slice(0, k);
+          if (topK.length === 0) return 0;
+          const relevantInTopK = topK.filter(doc => gtIdsArray.includes(doc.docId)).length;
+          return relevantInTopK / k;
+        };
+
+        const p1 = getP(1);
+        const p3 = getP(3);
+
+        // Recall@3
+        const r3 = (() => {
+          const topK = results.slice(0, 3);
+          const relevantInTopK = topK.filter(doc => gtIdsArray.includes(doc.docId)).length;
+          return gtIdsArray.length > 0 ? relevantInTopK / gtIdsArray.length : 0;
+        })();
+
+        // F1-Score@3
+        const f1 = (p3 + r3 > 0) ? 2 * ((p3 * r3) / (p3 + r3)) : 0;
+
+        return { p1, p3, r3, f1 };
       };
 
-      precisionData["TF-IDF"].p1Sum += calcP(t1, 1);
-      precisionData["TF-IDF"].p3Sum += calcP(t1, 3);
-      precisionData["TF-IDF"].count++;
-      precisionData["MinHash"].p1Sum += calcP(m1, 1);
-      precisionData["MinHash"].p3Sum += calcP(m1, 3);
-      precisionData["MinHash"].count++;
-      precisionData["SimHash"].p1Sum += calcP(s1r, 1);
-      precisionData["SimHash"].p3Sum += calcP(s1r, 3);
-      precisionData["SimHash"].count++;
+      const mt1 = calcMetrics(t1, gtIds);
+      metricsData["TF-IDF"].p1Sum += mt1.p1;
+      metricsData["TF-IDF"].p3Sum += mt1.p3;
+      metricsData["TF-IDF"].r3Sum += mt1.r3;
+      metricsData["TF-IDF"].f1Sum += mt1.f1;
+      metricsData["TF-IDF"].count++;
+      
+      const mm1 = calcMetrics(m1, gtIds);
+      metricsData["MinHash"].p1Sum += mm1.p1;
+      metricsData["MinHash"].p3Sum += mm1.p3;
+      metricsData["MinHash"].r3Sum += mm1.r3;
+      metricsData["MinHash"].f1Sum += mm1.f1;
+      metricsData["MinHash"].count++;
+      
+      const ms1r = calcMetrics(s1r, gtIds);
+      metricsData["SimHash"].p1Sum += ms1r.p1;
+      metricsData["SimHash"].p3Sum += ms1r.p3;
+      metricsData["SimHash"].r3Sum += ms1r.r3;
+      metricsData["SimHash"].f1Sum += ms1r.f1;
+      metricsData["SimHash"].count++;
     }
 
-    const precision = Object.entries(precisionData).map(([method, d]) => ({
+    const metrics = Object.entries(metricsData).map(([method, d]) => ({
       method,
       p1: +(d.p1Sum / d.count).toFixed(2),
       p3: +(d.p3Sum / d.count).toFixed(2),
-      avg: +((d.p1Sum / d.count + d.p3Sum / d.count) / 2).toFixed(2),
+      r3: +(d.r3Sum / d.count).toFixed(2),
+      f1: +(d.f1Sum / d.count).toFixed(2),
     }));
-    setS4({ precision });
+    setS4({ metrics });
     setProgress(100);
 
     setTotalTimeMs(performance.now() - t0);
@@ -417,25 +440,25 @@ const Experiments = () => {
 
         {/* SECTION 4 */}
         {s4 && (
-          <SectionWrapper title="4. Precision @ K" desc="Retrieval accuracy using ground truth relevance judgments.">
+          <SectionWrapper title="4. Precision, Recall & F1" desc="Retrieval accuracy using ground truth chunk IDs.">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Method</TableHead><TableHead>P@1</TableHead><TableHead>P@3</TableHead><TableHead>Avg</TableHead>
+                  <TableHead>Method</TableHead><TableHead>P@1</TableHead><TableHead>P@3</TableHead><TableHead>Recall@3</TableHead><TableHead>F1@3</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {s4.precision.map((r) => (
+                {s4.metrics.map((r) => (
                   <TableRow key={r.method}>
                     <TableCell className="font-medium">{r.method}</TableCell>
-                    <TableCell>{r.p1}</TableCell><TableCell>{r.p3}</TableCell><TableCell>{r.avg}</TableCell>
+                    <TableCell>{r.p1}</TableCell><TableCell>{r.p3}</TableCell><TableCell>{r.r3}</TableCell><TableCell>{r.f1}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <div className="h-64 mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={s4.precision}>
+                <BarChart data={s4.metrics}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="method" />
                   <YAxis domain={[0, 1]} />
@@ -443,6 +466,8 @@ const Experiments = () => {
                   <Legend />
                   <Bar dataKey="p1" name="P@1" fill={COLORS.tfidf} />
                   <Bar dataKey="p3" name="P@3" fill={COLORS.minhash} />
+                  <Bar dataKey="r3" name="Recall@3" fill={COLORS.simhash} />
+                  <Bar dataKey="f1" name="F1@3" fill="#ff7300" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

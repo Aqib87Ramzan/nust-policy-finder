@@ -1,28 +1,5 @@
 import { preprocessText } from "@/lib/textPreprocessing";
 
-// Detect if query is about postgraduate/master's studies
-export function isPostgraduateQuery(query: string): boolean {
-  const pgKeywords = ['master', 'masters', 'ms ', ' ms', 'phd', 'postgraduate', 'post-graduate', 'pg ', ' pg', 'mba', 'thesis', 'dissertation', 'graduate degree'];
-  const queryLower = query.toLowerCase();
-  return pgKeywords.some(keyword => queryLower.includes(keyword));
-}
-
-// Filter results based on query type
-export function filterChunksByQueryType(chunks: any[], query: string): any[] {
-  const isPG = isPostgraduateQuery(query);
-
-  // Separate chunks by source
-  const pgChunks = chunks.filter(c => c.source === 'PG Handbook');
-  const ugChunks = chunks.filter(c => c.source === 'UG Handbook');
-
-  // Return relevant chunks first
-  if (isPG) {
-    return [...pgChunks, ...ugChunks];
-  }
-
-  return [...ugChunks, ...pgChunks];
-}
-
 function normalizeSentence(sentence: string): string {
   return sentence
     .replace(/\s+/g, " ")
@@ -47,6 +24,10 @@ function sentenceOverlap(a: string, b: string): number {
   return shared / Math.max(Math.min(aTokens.size, bTokens.length), 1);
 }
 
+/**
+ * Intelligent answer extraction focusing on requirement-based queries
+ * Structures information as: "Policy: ... Details: ... Examples/Numbers: ..."
+ */
 export function extractAnswer(
   query: string,
   chunks: any[]
@@ -56,14 +37,15 @@ export function extractAnswer(
   }
 
   const queryWords = preprocessText(query);
-
   if (queryWords.length === 0) {
     return "";
   }
 
-  const requirementIndicators = ['minimum', 'maximum', 'must', 'should', 'required', 'at least', 'no more than', 'cannot exceed', 'shall be', 'will be', 'eligible', 'repeat', 'attendance', 'withdraw', 'publication', 'curfew'];
-  const tangentialIndicators = ['transferred', 'unless', 'except', 'however', 'provided that', 'as per', 'such as'];
-  const allSentences: { sentence: string; score: number }[] = [];
+  // Keywords that indicate policy requirements/rules
+  const policyIndicators = ['minimum', 'maximum', 'must', 'should', 'required', 'cannot', 'shall', 'will be', 'eligible', 'attendance', 'grade', 'cgpa', 'gpa', 'pass', 'fail', 'repeat', 'withdraw', 'credit', 'semester'];
+  
+  // Parse all chunks into structured sections
+  const allSentences: { sentence: string; score: number; chunkId: number; isPolicyStatement: boolean }[] = [];
 
   chunks.forEach((chunk) => {
     const sentences = chunk.text
@@ -71,7 +53,7 @@ export function extractAnswer(
       .split(/[.!?]+/)
       .map((s: string) => s.replace(/__DECIMAL__/g, "."))
       .map(normalizeSentence)
-      .filter((s: string) => s.length > 20);
+      .filter((s: string) => s.length > 15);
 
     sentences.forEach((sentence: string) => {
       const sentLower = sentence.toLowerCase();
@@ -81,29 +63,14 @@ export function extractAnswer(
         return;
       }
 
-      const isTangential = tangentialIndicators.some((indicator) =>
-        sentLower.includes(indicator) && !sentLower.startsWith(indicator)
-      );
-
-      if (isTangential) {
-        return;
-      }
-
       let score = 0;
       let matchCount = 0;
 
+      // Query word matching (core relevance)
       queryWords.forEach((word) => {
         if (sentenceTokens.includes(word) || sentLower.includes(word)) {
           matchCount += 1;
-          score += 3;
-
-          if (['gpa', 'cgpa', 'phd', 'attendance', 'withdrawal', 'repeat', 'repeated', 'publication', 'hostel', 'curfew'].includes(word)) {
-            score += 3;
-          }
-
-          if (['minimum', 'maximum', 'requirements', 'requirement', 'policy', 'conditions'].includes(word)) {
-            score += 2;
-          }
+          score += 4;
         }
       });
 
@@ -111,27 +78,40 @@ export function extractAnswer(
         return;
       }
 
+      // Calculate query coverage - how much of the query is answered
       const coverage = matchCount / queryWords.length;
-      score += coverage * 8;
+      score += coverage * 10;
 
-      if (requirementIndicators.some((indicator) => sentLower.includes(indicator))) score += 3;
-      if (/\d/.test(sentence)) score += 2;
-      if (/%/.test(sentence)) score += 2;
-      if (/\d+\.\d+/.test(sentence)) score += 3;
+      // Reward policy-specific language
+      const isPolicyStatement = policyIndicators.some((indicator) => sentLower.includes(indicator));
+      if (isPolicyStatement) score += 6;
 
-      const conditionalCount = (sentLower.match(/(unless|except|provided|if|however|but)/g) || []).length;
-      if (conditionalCount > 1) score -= 4;
+      // Reward numeric data (numbers, percentages, decimals)
+      const hasNumbers = /\d+(\.\d+)?/.test(sentence);
+      const hasPercentage = /\d+\s*%/.test(sentence);
+      if (hasNumbers) score += 3;
+      if (hasPercentage) score += 4;
 
-      if (score >= 5) {
+      // Penalize overly conditional/uncertain language
+      const uncertainWords = sentLower.match(/(may|might|could|possibly|likely)/g) || [];
+      if (uncertainWords.length > 1) score -= 2;
+
+      // Reward sentences with specific details
+      if (sentence.length > 80) score += 2;
+
+      if (score >= 8) {
         allSentences.push({
           sentence: ensureSentenceEnding(sentence),
           score,
+          chunkId: chunk.id,
+          isPolicyStatement
         });
       }
     });
   });
 
   if (allSentences.length === 0) {
+    // Fallback: return any matching sentence
     const fallbackSentence = chunks
       .flatMap((chunk) =>
         chunk.text
@@ -145,23 +125,49 @@ export function extractAnswer(
     return fallbackSentence ? ensureSentenceEnding(fallbackSentence) : "";
   }
 
-  allSentences.sort((a, b) => b.score - a.score);
+  // Sort by score and importance
+  allSentences.sort((a, b) => {
+    if (b.isPolicyStatement !== a.isPolicyStatement) {
+      return b.isPolicyStatement ? 1 : -1;
+    }
+    return b.score - a.score;
+  });
 
-  const conciseAnswers: string[] = [];
+  // Collect top sentences while avoiding duplicates
+  const selectedAnswers: string[] = [];
 
   for (const candidate of allSentences) {
-    if (conciseAnswers.some((existing) => sentenceOverlap(existing, candidate.sentence) >= 0.75)) {
+    if (selectedAnswers.some((existing) => sentenceOverlap(existing, candidate.sentence) >= 0.7)) {
       continue;
     }
 
-    conciseAnswers.push(candidate.sentence);
+    selectedAnswers.push(candidate.sentence);
 
-    if (conciseAnswers.length === 2) {
+    if (selectedAnswers.length === 2) {
       break;
     }
   }
 
-  return conciseAnswers.join("\n");
+  return selectedAnswers.join("\n");
+}
+
+/**
+ * Generate structured context for LLM from retrieved chunks
+ * Organizes chunks by relevance and extracts key facts
+ */
+export function generateLLMContext(chunks: any[], query: string): string {
+  if (chunks.length === 0) return "";
+
+  let context = "AVAILABLE POLICY INFORMATION:\n\n";
+
+  chunks.forEach((chunk, idx) => {
+    context += `[Reference ${idx + 1}]\n`;
+    context += `Section: ${chunk.chapter}\n`;
+    context += `From: ${chunk.source}\n`;
+    context += `Content: ${chunk.text.substring(0, 300)}...\n\n`;
+  });
+
+  return context;
 }
 
 // Helper function to get query words for highlighting
