@@ -29,12 +29,26 @@ function hash64(token: string): [number, number] {
 }
 
 /** Compute 64-bit SimHash with term frequency weighting for better discrimination */
-export function computeSimHash(text: string): [number, number] {
-  const tokens = preprocessText(text);
+export function computeSimHash(text: string, useShingles: boolean = true): [number, number] {
+  // If useShingles is true, we compute shingles like MinHash to capture phrase structures
+  // Otherwise we just compute based on raw unigram tokens
+  let tokens: string[] = [];
+  if (useShingles) {
+    const rawTokens = preprocessText(text);
+    if (rawTokens.length < 3) {
+      tokens = rawTokens;
+    } else {
+      for (const t of rawTokens) tokens.push(t);
+      for (let i = 0; i < rawTokens.length - 1; i++) tokens.push(rawTokens[i] + '_' + rawTokens[i + 1]);
+      for (let i = 0; i < rawTokens.length - 2; i++) tokens.push(rawTokens[i] + '_' + rawTokens[i + 1] + '_' + rawTokens[i + 2]);
+    }
+  } else {
+    tokens = preprocessText(text);
+  }
+  
   const v = new Float64Array(64);
 
-  // Term frequency with decay: more weight to unique terms
-  const freq = new Map<string, number>();
+    const freq = new Map<string, number>();
   for (const t of tokens) {
     freq.set(t, (freq.get(t) || 0) + 1);
   }
@@ -102,18 +116,19 @@ export function simHashRetrieve(
   query: string,
   chunks: Array<{ id: number; text: string }>,
   k = 5,
-  threshold?: number
+  threshold?: number,
+  useShingles: boolean = true
 ): { results: SimHashResult[]; queryTimeMs: number } {
   const start = performance.now();
   
-  // Use adaptive threshold if not specified
-  const effectiveThreshold = threshold ?? calculateAdaptiveThreshold(chunks.length);
+  // Use adaptive threshold if not specified. Less strict (higher max dist) when using n-grams vs unigrams
+  const effectiveThreshold = threshold ?? (useShingles ? 36 : calculateAdaptiveThreshold(chunks.length));
   
-  const qHash = computeSimHash(query);
+  const qHash = computeSimHash(query, useShingles);
 
   const results: SimHashResult[] = chunks
     .map((c) => {
-      const docHash = computeSimHash(c.text);
+      const docHash = computeSimHash(c.text, useShingles);
       const dist = hammingDistance(qHash, docHash);
       return { docId: c.id, hammingDist: dist, similarity: 1 - dist / 64 };
     })

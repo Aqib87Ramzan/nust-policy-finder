@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Never commit your Gemini API key or any other secrets!
+# Never commit your Groq API key or any other secrets!
 .env
 .Revised-Undergraduate-Handbook.pdf
 # Editor directories and files

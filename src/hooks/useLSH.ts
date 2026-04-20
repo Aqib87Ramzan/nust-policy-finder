@@ -28,8 +28,8 @@ export function useLSH() {
     const builtIdf = buildIDF(docs);
     setIdf(builtIdf);
 
-    // Optimized LSH: 128 hashes, 20 bands, 5 rows per band
-    const builtLsh = buildLSHIndex(docs, 128, 20, 5);
+    // Optimized LSH: 256 hashes, 32 bands, 8 rows per band
+    const builtLsh = buildLSHIndex(docs, 256, 32, 8);
     setLshIndex(builtLsh);
 
     const hashes = docs.map((d) => computeSimHash(d.text));
@@ -72,8 +72,8 @@ export function useLSH() {
       setLshTimeMs(lsh.queryTimeMs);
       setCandidateCount(lsh.candidateCount);
 
-      // Standalone MinHash with optimized 128 hashes
-      const mh = retrieveByMinHash(query, docs, topK, 128);
+      // Standalone MinHash with optimized 256 hashes
+      const mh = retrieveByMinHash(query, docs, topK, 256);
       setMinhashResults(mh.results);
       setMinhashTimeMs(mh.queryTimeMs);
 

@@ -65,6 +65,7 @@ const Experiments = () => {
   const [s2, setS2] = useState<Section2Data | null>(null);
   const [s3, setS3] = useState<Section3Data | null>(null);
   const [s4, setS4] = useState<Section4Data | null>(null);
+  const [s6, setS6] = useState<{ method: string; parameter: string; f1: number; p3: number; r3: number }[] | null>(null);
 
   const yieldToUI = () => new Promise((r) => setTimeout(r, 0));
 
@@ -269,6 +270,69 @@ const Experiments = () => {
       f1: +(d.f1Sum / d.count).toFixed(2),
     }));
     setS4({ metrics });
+    setProgress(90);
+    await yieldToUI();
+
+    // ── SECTION 6: Parameter Tuning / Ablation ──
+    const tuningResults: { method: string; parameter: string; f1: number; p3: number; r3: number }[] = [];
+    
+    const runSweep = (method: string, paramName: string, paramValue: any, callFn: (q: string) => any[]) => {
+      let p3Sum = 0, r3Sum = 0, f1Sum = 0;
+      for (const q of TEST_QUERIES) {
+        const gtIds = GROUND_TRUTH[q];
+        if (!gtIds) continue;
+        const results = callFn(q);
+        const top3 = results.slice(0, 3);
+        const relevantInTop3 = top3.filter((doc: any) => gtIds.includes(doc.docId)).length;
+        const p3 = top3.length > 0 ? relevantInTop3 / 3 : 0;
+        const r3 = gtIds.length > 0 ? relevantInTop3 / gtIds.length : 0;
+        const f1 = (p3 + r3 > 0) ? 2 * ((p3 * r3) / (p3 + r3)) : 0;
+        p3Sum += p3;
+        r3Sum += r3;
+        f1Sum += f1;
+      }
+      const count = TEST_QUERIES.length;
+      tuningResults.push({
+        method,
+        parameter: `${paramName}=${paramValue}`,
+        p3: +(p3Sum / count).toFixed(2),
+        r3: +(r3Sum / count).toFixed(2),
+        f1: +(f1Sum / count).toFixed(2)
+      });
+    };
+
+    // TF-IDF threshold sweep (hardcoded normally at 0.02)
+    // Note: retrieveTopK only accepts threshold internally, so we simulate by filtering ourselves
+    // We already built idf above. We'll simulate by filtering out similarities manually
+    [0.0, 0.01, 0.05, 0.1].forEach(thresh => {
+      runSweep("TF-IDF", "thresh", thresh, (q) => {
+         const all = retrieveTopK(q, docs, idf, 10).results;
+         return all.filter((r: any) => r.cosineSimilarity > thresh);
+      });
+    });
+
+    // MinHash combinations (numHashes & Shingle counts)
+    // For simplicity, retrieving with variable numHashes
+    [64, 128, 256, 512].forEach(numHashes => {
+      runSweep("MinHash", "numHashes", numHashes, (q) => {
+         return retrieveByMinHash(q, docs, 3, numHashes).results;
+      });
+    });
+
+    // SimHash combination sweep (threshold AND shingling flag)
+    [
+      { thresh: 32, shingles: false },
+      { thresh: 36, shingles: false },
+      { thresh: 36, shingles: true },
+      { thresh: 40, shingles: true },
+      { thresh: 48, shingles: true }
+    ].forEach(({ thresh, shingles }) => {
+      runSweep("SimHash", `thresh=${thresh},ngram=${shingles}`, 1, (q) => {
+         return simHashRetrieve(q, docs, 3, thresh, shingles).results;
+      });
+    });
+
+    setS6(tuningResults);
     setProgress(100);
 
     setTotalTimeMs(performance.now() - t0);
@@ -329,7 +393,7 @@ const Experiments = () => {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
         {/* SECTION 1 */}
         {s1 && (
-          <SectionWrapper title="1. Exact vs Approximate Retrieval" desc="Latency comparison across 10 test queries for all 3 methods.">
+          <SectionWrapper title="1. Exact vs Approximate Retrieval" desc="Latency comparison across 5 test queries for all 3 methods.">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={s1.latencyChart}>
@@ -503,6 +567,43 @@ const Experiments = () => {
             </ResponsiveContainer>
           </div>
         </SectionWrapper>
+
+        {/* SECTION 6 - Parameter Sweeps */}
+        {s6 && (
+          <SectionWrapper title="6. Parameter Discovery / Sweeps" desc="Evaluating P@3 and F1@3 for different algorithm configurations on current testing queries.">
+            <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Method</TableHead><TableHead>Parameter Sweep</TableHead><TableHead>P@3</TableHead><TableHead>Recall@3</TableHead><TableHead>F1@3</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {s6.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">{r.method}</TableCell>
+                    <TableCell>{r.parameter}</TableCell>
+                    <TableCell>{r.p3}</TableCell><TableCell>{r.r3}</TableCell><TableCell>{r.f1}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+            <div className="h-72 mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={s6}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="parameter" angle={-45} textAnchor="end" height={80} interval={0} fontSize={12} />
+                  <YAxis domain={[0, 1]} />
+                  <Tooltip />
+                  <Legend verticalAlign="top" />
+                  <Bar dataKey="p3" name="P@3" fill="#3b82f6" />
+                  <Bar dataKey="f1" name="F1@3" fill="#f97316" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </SectionWrapper>
+        )}
 
         {/* Overall Conclusions */}
         {done && (

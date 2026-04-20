@@ -11,7 +11,7 @@ import MetricsPanel from "@/components/MetricsPanel";
 import ComparePanel from "@/components/ComparePanel";
 import Suggestions from "@/components/Suggestions";
 import { extractAnswer } from "@/lib/answerExtractor";
-import { extractAnswerWithGemini } from "@/lib/geminiExtractor";
+import { extractAnswerWithGroq } from "@/lib/groqExtractor";
 import { ugChunks } from "@/data/Ugchunk";
 import { GraduationCap, GitCompareArrows, Loader2, Database } from "lucide-react";
 
@@ -64,17 +64,18 @@ const Index = () => {
       const fallbackAnswer = extractAnswer(query, chunks);
       
       try {
-        const geminiResult = await extractAnswerWithGemini(query, chunks);
+        const groqResult = await extractAnswerWithGroq(query, chunks);
         if (active) {
-          if (geminiResult && geminiResult.answer) {
-            setExtractedAnswer(geminiResult.answer);
+          if (groqResult && groqResult.answer) {
+            setExtractedAnswer(groqResult.answer);
           } else {
-            setExtractedAnswer(fallbackAnswer);
+            // Include a warning about failing over to fallback
+            setExtractedAnswer("⚠️ *AI enhancement failed (check API key).* Showing raw extracted text:\n\n" + fallbackAnswer);
           }
         }
       } catch (error) {
         if (active) {
-          setExtractedAnswer(fallbackAnswer);
+          setExtractedAnswer("⚠️ *AI enhancement encountered an error.* Showing raw extracted text:\n\n" + fallbackAnswer);
         }
       } finally {
         if (active) {
@@ -231,7 +232,7 @@ const Index = () => {
                   isExtractingAnswer ? (
                     <div className="rounded-lg border-l-4 border-green-500 bg-green-50 p-5 shadow-sm mb-6 flex items-center gap-3">
                       <Loader2 className="h-5 w-5 animate-spin text-green-600" />
-                      <span className="text-sm font-medium text-green-900">Synthesizing Answer with Gemini AI...</span>
+                      <span className="text-sm font-medium text-green-900">Synthesizing Answer with Groq AI...</span>
                     </div>
                   ) : (
                     <AnswerBox answer={extractedAnswer} />
