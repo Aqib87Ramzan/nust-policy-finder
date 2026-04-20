@@ -24,6 +24,7 @@ const methods: { value: RetrievalMethod; label: string }[] = [
 
 const Index = () => {
   const [query, setQuery] = useState("");
+  const [searchedQuery, setSearchedQuery] = useState("");
   const [topK, setTopK] = useState(3);
   const [showCompare, setShowCompare] = useState(false);
   const [extractedAnswer, setExtractedAnswer] = useState("");
@@ -61,10 +62,10 @@ const Index = () => {
       const chunks = getFullChunksFromResults(currentResults as any[]);
       
       // Fallback to local heuristic extraction
-      const fallbackAnswer = extractAnswer(query, chunks);
+      const fallbackAnswer = extractAnswer(searchedQuery, chunks);
       
       try {
-        const groqResult = await extractAnswerWithGroq(query, chunks);
+        const groqResult = await extractAnswerWithGroq(searchedQuery, chunks);
         if (active) {
           if (groqResult && groqResult.answer) {
             setExtractedAnswer(groqResult.answer);
@@ -89,21 +90,24 @@ const Index = () => {
     return () => {
       active = false;
     };
-  }, [hasSearched, method, tfidfResults, lshResults, minhashResults, simhashResults, query]);
+  }, [hasSearched, method, tfidfResults, lshResults, minhashResults, simhashResults, searchedQuery]);
 
   const handleSearch = () => {
     setShowCompare(false);
+    setSearchedQuery(query);
     search(query, topK);
   };
 
   const handleSuggestion = (q: string) => {
     setQuery(q);
+    setSearchedQuery(q);
     setShowCompare(false);
     search(q, topK);
   };
 
   const handleCompare = () => {
     if (!query.trim()) return;
+    setSearchedQuery(query);
     search(query, topK);
     setShowCompare(true);
   };
