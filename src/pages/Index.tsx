@@ -29,6 +29,7 @@ const Index = () => {
   const [showCompare, setShowCompare] = useState(false);
   const [extractedAnswer, setExtractedAnswer] = useState("");
   const [isExtractingAnswer, setIsExtractingAnswer] = useState(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const {
     search, lshResults, tfidfResults, minhashResults, simhashResults,
@@ -90,12 +91,14 @@ const Index = () => {
     return () => {
       active = false;
     };
-  }, [hasSearched, method, tfidfResults, lshResults, minhashResults, simhashResults, searchedQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTrigger]);
 
   const handleSearch = () => {
     setShowCompare(false);
     setSearchedQuery(query);
     search(query, topK);
+    setSearchTrigger((prev) => prev + 1);
   };
 
   const handleSuggestion = (q: string) => {
@@ -103,6 +106,7 @@ const Index = () => {
     setSearchedQuery(q);
     setShowCompare(false);
     search(q, topK);
+    setSearchTrigger((prev) => prev + 1);
   };
 
   const handleCompare = () => {
@@ -110,6 +114,7 @@ const Index = () => {
     setSearchedQuery(query);
     search(query, topK);
     setShowCompare(true);
+    setSearchTrigger((prev) => prev + 1);
   };
 
   const timeMap: Record<RetrievalMethod, number> = { lsh: lshTimeMs, tfidf: tfidfTimeMs, minhash: minhashTimeMs, simhash: simhashTimeMs };
