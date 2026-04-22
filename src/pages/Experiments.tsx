@@ -220,7 +220,7 @@ const Experiments = () => {
         const getP = (k: number) => {
           const topK = results.slice(0, k);
           if (topK.length === 0) return 0;
-          const relevantInTopK = topK.filter(doc => gtIdsArray.includes(doc.docId)).length;
+          const relevantInTopK = topK.filter((doc: any) => gtIdsArray.includes(doc.docId)).length;
           return relevantInTopK / k;
         };
 
@@ -228,9 +228,11 @@ const Experiments = () => {
         const p3 = getP(3);
 
         // Recall@3
+        // Standard recall: relevant_retrieved / total_relevant 
+        // This will be bounded to a lower number if total_relevant > 3, which matches Section 6!
         const r3 = (() => {
           const topK = results.slice(0, 3);
-          const relevantInTopK = topK.filter(doc => gtIdsArray.includes(doc.docId)).length;
+          const relevantInTopK = topK.filter((doc: any) => gtIdsArray.includes(doc.docId)).length;
           return gtIdsArray.length > 0 ? relevantInTopK / gtIdsArray.length : 0;
         })();
 
