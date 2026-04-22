@@ -9,6 +9,7 @@ import {
   type LSHBandedResult,
 } from "@/lib/minhash";
 import { simHashRetrieve, computeSimHash, type SimHashResult } from "@/lib/simhash";
+import { computePageRank, applyPageRank } from "@/lib/pagerank";
 
 export type RetrievalMethod = "lsh" | "tfidf" | "minhash" | "simhash";
 
@@ -22,11 +23,17 @@ export function useLSH() {
   const [idf, setIdf] = useState<Map<string, number>>(new Map());
   const [lshIndex, setLshIndex] = useState<ReturnType<typeof buildLSHIndex> | null>(null);
   const [chunkHashes, setChunkHashes] = useState<[number, number][]>([]);
+  const [pageRankScores, setPageRankScores] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     // Build all indexes once at startup with optimized parameters
     const builtIdf = buildIDF(docs);
     setIdf(builtIdf);
+
+    // Calculate PageRank (Authority ranking based on intrinsic similarity graph)
+    // using a fast damping factor of 0.85
+    const prScores = computePageRank(docs, builtIdf, 0.85, 20, 0.05);
+    setPageRankScores(prScores);
 
     // Optimized LSH: 256 hashes, 32 bands, 8 rows per band
     const builtLsh = buildLSHIndex(docs, 256, 32, 8);
@@ -61,25 +68,35 @@ export function useLSH() {
         return;
       }
 
-      // TF-IDF (uses prebuilt IDF)
-      const tfidf = retrieveTopK(query, docs, idf, topK);
-      setTfidfResults(tfidf.results);
+      // TF-IDF (uses prebuilt IDF) + PageRank
+      const tfidf = retrieveTopK(query, docs, idf, topK * 2); // Get more candidates
+      const rankedTfidf = applyPageRank(tfidf.results, 'cosineSimilarity', pageRankScores, 0.4).slice(0, topK);
+      setTfidfResults(rankedTfidf);
       setTfidfTimeMs(tfidf.queryTimeMs);
 
-      // LSH Banding (uses prebuilt index)
-      const lsh = lshRetrieve(query, lshIndex, topK);
-      setLshResults(lsh.results);
+      // LSH Banding (uses prebuilt index) + PageRank
+      const lsh = lshRetrieve(query, lshIndex, topK * 2);
+      const rankedLsh = applyPageRank(lsh.results, 'jaccardSimilarity', pageRankScores, 0.4).slice(0, topK);
+      setLshResults(rankedLsh);
       setLshTimeMs(lsh.queryTimeMs);
       setCandidateCount(lsh.candidateCount);
 
-      // Standalone MinHash with optimized 256 hashes
-      const mh = retrieveByMinHash(query, docs, topK, 256);
-      setMinhashResults(mh.results);
+      // Standalone MinHash + PageRank
+      const mh = retrieveByMinHash(query, docs, topK * 2, 256);
+      const rankedMh = applyPageRank(mh.results, 'jaccardSimilarity', pageRankScores, 0.4).slice(0, topK);
+      setMinhashResults(rankedMh);
       setMinhashTimeMs(mh.queryTimeMs);
 
-      // SimHash with adaptive threshold
-      const sh = simHashRetrieve(query, docs, topK);
-      setSimhashResults(sh.results);
+      // SimHash returns hamming distance. We need to handle this differently because a lower distance is better.
+      // Easiest is to convert distance to similarity roughly bounded [0, 1] then pagerank.
+      const sh = simHashRetrieve(query, docs, topK * 2);
+      const simhashNormalized = sh.results.map(r => ({
+        ...r,
+        simScore: 1 - (r.hammingDistance / 64) // Lower distance -> higher simScore
+      }));
+      const rankedSh = applyPageRank(simhashNormalized, 'simScore', pageRankScores, 0.4).slice(0, topK);
+      // We still want to preserve the distance for display, but it is now ranked by PageRank-boosted similarity
+      setSimhashResults(rankedSh);
       setSimhashTimeMs(sh.queryTimeMs);
 
       setHasSearched(true);
