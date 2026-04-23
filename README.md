@@ -58,7 +58,7 @@ This project is built around exploring different methods of fetching the most re
 
 1.  **Clone the repository** (if you haven't already):
     ```bash
-    git clone [https://github.com/Aqib87Ramzan/nust-policy-finder.git]
+    git clone https://github.com/Aqib87Ramzan/nust-policy-finder.git
     cd nust-policy-finder
     ```
 
