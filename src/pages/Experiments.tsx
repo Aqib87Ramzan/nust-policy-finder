@@ -113,10 +113,10 @@ const Experiments = () => {
       latencyChart,
       summary: [
         { method: "TF-IDF", avg: +tfidfAvg.toFixed(2), min: +Math.min(...tfidfLatencies).toFixed(2), max: +Math.max(...tfidfLatencies).toFixed(2), candidates: docs.length },
-        { method: "MinHash", avg: +mhAvg.toFixed(2), min: +Math.min(...mhLatencies).toFixed(2), max: +Math.max(...mhLatencies).toFixed(2), candidates: docs.length },
+        { method: "MinHash + LSH", avg: +mhAvg.toFixed(2), min: +Math.min(...mhLatencies).toFixed(2), max: +Math.max(...mhLatencies).toFixed(2), candidates: docs.length },
         { method: "SimHash", avg: +shAvg.toFixed(2), min: +Math.min(...shLatencies).toFixed(2), max: +Math.max(...shLatencies).toFixed(2), candidates: docs.length },
       ],
-      analysis: `TF-IDF is exact but runs at ${tfidfAvg.toFixed(1)} ms average. MinHash is approximate at ${mhAvg.toFixed(1)} ms (${(tfidfAvg / mhAvg).toFixed(1)}x relative). SimHash uses Hamming distance with ${shAvg.toFixed(1)} ms average.`,
+      analysis: `TF-IDF is exact but runs at ${tfidfAvg.toFixed(1)} ms average. MinHash + LSH is approximate at ${mhAvg.toFixed(1)} ms (${(tfidfAvg / mhAvg).toFixed(1)}x relative). SimHash uses Hamming distance with ${shAvg.toFixed(1)} ms average.`,
     });
     setProgress(25);
     await new Promise((r) => setTimeout(r, 30));
@@ -205,13 +205,13 @@ const Experiments = () => {
     // ── SECTION 4 ──
     const metricsData: Record<string, { p1Sum: number; p3Sum: number; r3Sum: number; f1Sum: number; count: number }> = {
       "TF-IDF": { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
-      MinHash: { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
+      "MinHash + LSH": { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
       SimHash: { p1Sum: 0, p3Sum: 0, r3Sum: 0, f1Sum: 0, count: 0 },
     };
     for (const q of TEST_QUERIES) {
       const gtIds = GROUND_TRUTH[q];
       if (!gtIds) continue;
-      
+
       const t1 = retrieveTopK(q, docs, idf, 3).results;
       const m1 = retrieveByMinHash(q, docs, 3).results;
       const s1r = simHashRetrieve(q, docs, 3).results;
@@ -249,14 +249,14 @@ const Experiments = () => {
       metricsData["TF-IDF"].r3Sum += mt1.r3;
       metricsData["TF-IDF"].f1Sum += mt1.f1;
       metricsData["TF-IDF"].count++;
-      
+
       const mm1 = calcMetrics(m1, gtIds);
-      metricsData["MinHash"].p1Sum += mm1.p1;
-      metricsData["MinHash"].p3Sum += mm1.p3;
-      metricsData["MinHash"].r3Sum += mm1.r3;
-      metricsData["MinHash"].f1Sum += mm1.f1;
-      metricsData["MinHash"].count++;
-      
+      metricsData["MinHash + LSH"].p1Sum += mm1.p1;
+      metricsData["MinHash + LSH"].p3Sum += mm1.p3;
+      metricsData["MinHash + LSH"].r3Sum += mm1.r3;
+      metricsData["MinHash + LSH"].f1Sum += mm1.f1;
+      metricsData["MinHash + LSH"].count++;
+
       const ms1r = calcMetrics(s1r, gtIds);
       metricsData["SimHash"].p1Sum += ms1r.p1;
       metricsData["SimHash"].p3Sum += ms1r.p3;
@@ -278,7 +278,7 @@ const Experiments = () => {
 
     // ── SECTION 6: Parameter Tuning / Ablation ──
     const tuningResults: { method: string; parameter: string; f1: number; p3: number; r3: number }[] = [];
-    
+
     const runSweep = (method: string, paramName: string, paramValue: any, callFn: (q: string) => any[]) => {
       let p3Sum = 0, r3Sum = 0, f1Sum = 0;
       for (const q of TEST_QUERIES) {
@@ -309,16 +309,16 @@ const Experiments = () => {
     // We already built idf above. We'll simulate by filtering out similarities manually
     [0.0, 0.01, 0.05, 0.1].forEach(thresh => {
       runSweep("TF-IDF", "thresh", thresh, (q) => {
-         const all = retrieveTopK(q, docs, idf, 10).results;
-         return all.filter((r: any) => r.cosineSimilarity > thresh);
+        const all = retrieveTopK(q, docs, idf, 10).results;
+        return all.filter((r: any) => r.cosineSimilarity > thresh);
       });
     });
 
     // MinHash combinations (numHashes & Shingle counts)
     // For simplicity, retrieving with variable numHashes
     [64, 128, 256, 512].forEach(numHashes => {
-      runSweep("MinHash", "numHashes", numHashes, (q) => {
-         return retrieveByMinHash(q, docs, 3, numHashes).results;
+      runSweep("MinHash + LSH", "numHashes", numHashes, (q) => {
+        return retrieveByMinHash(q, docs, 3, numHashes).results;
       });
     });
 
@@ -331,7 +331,7 @@ const Experiments = () => {
       { thresh: 48, shingles: true }
     ].forEach(({ thresh, shingles }) => {
       runSweep("SimHash", `thresh=${thresh},ngram=${shingles}`, 1, (q) => {
-         return simHashRetrieve(q, docs, 3, thresh, shingles).results;
+        return simHashRetrieve(q, docs, 3, thresh, shingles).results;
       });
     });
 
@@ -356,7 +356,7 @@ const Experiments = () => {
 
   const memoryData = [
     { method: "TF-IDF", size: +(docs.length * 500 * 8 / 1024).toFixed(1), notes: `O(n×v) — n=${docs.length}, v≈500` },
-    { method: "MinHash", size: +(docs.length * 100 * 4 / 1024).toFixed(1), notes: `O(n×h) — h=100 hash functions` },
+    { method: "MinHash + LSH", size: +(docs.length * 100 * 4 / 1024).toFixed(1), notes: `O(n×h) — h=100 hash functions` },
     { method: "SimHash", size: +(docs.length * 8 / 1024).toFixed(1), notes: `O(n×64) — fixed 64-bit fingerprint` },
   ];
   const memoryChart = memoryData.map((d) => ({ method: d.method, sizeKB: d.size }));
@@ -406,7 +406,7 @@ const Experiments = () => {
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="tfidf" name="TF-IDF" fill={COLORS.tfidf} />
-                  <Bar dataKey="minhash" name="MinHash" fill={COLORS.minhash} />
+                  <Bar dataKey="minhash" name="MinHash + LSH" fill={COLORS.minhash} />
                   <Bar dataKey="simhash" name="SimHash" fill={COLORS.simhash} />
                 </BarChart>
               </ResponsiveContainer>
@@ -433,7 +433,7 @@ const Experiments = () => {
         {/* SECTION 2 */}
         {s2 && (
           <SectionWrapper title="2. Parameter Sensitivity Analysis" desc="How algorithm parameters affect performance and result quality.">
-            <h3 className="font-semibold text-foreground mt-4">Effect of Hash Functions on MinHash Performance</h3>
+            <h3 className="font-semibold text-foreground mt-4">Effect of Hash Functions on MinHash + LSH Performance</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={s2.hashFnData}>
@@ -496,7 +496,7 @@ const Experiments = () => {
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="tfidf" name="TF-IDF" stroke={COLORS.tfidf} strokeWidth={2} />
-                  <Line type="monotone" dataKey="minhash" name="MinHash" stroke={COLORS.minhash} strokeWidth={2} />
+                  <Line type="monotone" dataKey="minhash" name="MinHash + LSH" stroke={COLORS.minhash} strokeWidth={2} />
                   <Line type="monotone" dataKey="simhash" name="SimHash" stroke={COLORS.simhash} strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
@@ -575,22 +575,22 @@ const Experiments = () => {
         {s6 && (
           <SectionWrapper title="6. Parameter Discovery / Sweeps" desc="Evaluating P@3 and F1@3 for different algorithm configurations on current testing queries.">
             <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Method</TableHead><TableHead>Parameter Sweep</TableHead><TableHead>P@3</TableHead><TableHead>Recall@3</TableHead><TableHead>F1@3</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {s6.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{r.method}</TableCell>
-                    <TableCell>{r.parameter}</TableCell>
-                    <TableCell>{r.p3}</TableCell><TableCell>{r.r3}</TableCell><TableCell>{r.f1}</TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Method</TableHead><TableHead>Parameter Sweep</TableHead><TableHead>P@3</TableHead><TableHead>Recall@3</TableHead><TableHead>F1@3</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {s6.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{r.method}</TableCell>
+                      <TableCell>{r.parameter}</TableCell>
+                      <TableCell>{r.p3}</TableCell><TableCell>{r.r3}</TableCell><TableCell>{r.f1}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
             <div className="h-72 mt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -616,7 +616,7 @@ const Experiments = () => {
               <li><strong>Most Accurate:</strong> TF-IDF with cosine similarity provides the highest precision as it performs exact term matching and weighting.</li>
               <li><strong>Fastest:</strong> SimHash is typically fastest for individual queries due to simple bitwise Hamming distance comparisons.</li>
               <li><strong>Best Scalability:</strong> MinHash + LSH banding scales best to larger datasets by pruning candidates before scoring.</li>
-              <li><strong>Recommended:</strong> For this academic handbook dataset (~670 chunks), TF-IDF provides the best accuracy-speed tradeoff. For larger corpora, MinHash+LSH is recommended.</li>
+              <li><strong>Recommended:</strong> For this academic handbook dataset (89 chunks), TF-IDF provides the best accuracy-speed tradeoff. For larger corpora, MinHash+LSH is recommended.</li>
             </ol>
           </Card>
         )}
