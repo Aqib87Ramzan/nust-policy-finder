@@ -1,3 +1,4 @@
+// Project source file for answer box.
 import { Target } from "lucide-react";
 
 interface AnswerBoxProps {

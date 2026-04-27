@@ -1,3 +1,4 @@
+// Project source file for metrics panel.
 import { Clock, Database, Filter, BarChart3, Layers } from "lucide-react";
 import type { RetrievalMethod } from "@/hooks/useLSH";
 

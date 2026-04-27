@@ -1,3 +1,4 @@
+// Project source file for index.
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLSH, type RetrievalMethod } from "@/hooks/useLSH";

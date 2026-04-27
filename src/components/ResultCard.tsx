@@ -1,3 +1,4 @@
+// Project source file for result card.
 import type { LSHBandedResult } from "@/lib/minhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";

@@ -1,3 +1,4 @@
+// Tailwind theme and plugin configuration.
 import type { Config } from "tailwindcss";
 
 export default {

@@ -1,3 +1,4 @@
+// Project source file for recommendation.
 import { preprocessText } from './textPreprocessing';
 
 export interface Document {

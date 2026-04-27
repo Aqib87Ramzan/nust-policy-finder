@@ -1,3 +1,4 @@
+// Project source file for suggestions.
 import { ugChunks } from "@/data/Ugchunk";
 import { MessageCircleQuestion } from "lucide-react";
 

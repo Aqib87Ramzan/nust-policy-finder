@@ -1,3 +1,4 @@
+// ESLint rules and parser setup for the project.
 import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";

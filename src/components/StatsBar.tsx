@@ -1,3 +1,4 @@
+// Project source file for stats bar.
 import { Database, Clock, Filter, BarChart3 } from "lucide-react";
 import type { RetrievalMethod } from "@/hooks/useLSH";
 

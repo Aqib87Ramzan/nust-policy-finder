@@ -1,3 +1,4 @@
+// Project source file for highlight extractor.
 import React from 'react';
 import { getHighlightPositions } from './answerExtractor';
 

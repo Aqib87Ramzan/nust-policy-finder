@@ -1,21 +1,20 @@
 /**
- * MinHash + LSH Banding implementation with optimized parameters.
- * Enhanced banding strategy: more sensitive detection with better candidate pruning
+ * Implementation of MinHash and LSH (Locality-Sensitive Hashing).
+ * Helps quickly find similar documents without comparing every single word.
  */
 import { preprocessText } from './textPreprocessing';
 
-const LARGE_PRIME = 2147483647; // Mersenne prime 2^31 - 1
+const LARGE_PRIME = 2147483647;
 
 export interface HashFunction {
   a: number;
   b: number;
 }
 
-/** Generate N deterministic hash functions with improved randomization */
+// Create the math formulas needed to hash our text
 export function generateHashFunctions(numHashes = 128): HashFunction[] {
   const funcs: HashFunction[] = [];
   for (let i = 0; i < numHashes; i++) {
-    // Better seed generation using multiple primes
     const a = ((i + 1) * 2654435761 + 12345) % LARGE_PRIME;
     const b = ((i + 1) * 2246822519 + 1013904223) % LARGE_PRIME;
     funcs.push({ a, b });
@@ -28,22 +27,19 @@ function applyHash(hf: HashFunction, x: number): number {
   return Number(result < 0n ? result + BigInt(LARGE_PRIME) : result);
 }
 
-/** Create shingles: unigrams, bigrams, and trigrams for better granularity */
+// Break text into small overlapping chunks (1, 2, and 3 words at a time)
 export function getShingles(text: string): Set<string> {
   const tokens = preprocessText(text);
   const shingles = new Set<string>();
 
-  // Unigrams - critical for short queries
   for (const t of tokens) {
     shingles.add(t);
   }
 
-  // Bigrams - capture word relationships
   for (let i = 0; i < tokens.length - 1; i++) {
     shingles.add(tokens[i] + '_' + tokens[i + 1]);
   }
 
-  // Trigrams - for longer context (optional, adds specificity)
   for (let i = 0; i < tokens.length - 2; i++) {
     shingles.add(tokens[i] + '_' + tokens[i + 1] + '_' + tokens[i + 2]);
   }
@@ -51,18 +47,17 @@ export function getShingles(text: string): Set<string> {
   return shingles;
 }
 
-/** DJB2 string → non-negative integer with improved mixing */
+// Convert a text chunk into a number so we can do math on it
 function shingleToInt(s: string): number {
   let hash = 5381;
   for (let i = 0; i < s.length; i++) {
     hash = ((hash << 5) + hash + s.charCodeAt(i)) & 0x7fffffff;
   }
-  // Additional mixing to improve distribution
   hash = ((hash << 13) ^ hash) & 0x7fffffff;
   return hash;
 }
 
-/** Compute MinHash signature with larger signature for better precision */
+// Convert a set of words into a smaller "signature" footprint
 export function computeMinHashSignature(
   shingles: Set<string>,
   hashFunctions: HashFunction[]
@@ -81,7 +76,7 @@ export function computeMinHashSignature(
   return signature;
 }
 
-/** Estimate Jaccard similarity between two MinHash signatures */
+// Compare two signatures to guess how similar the original texts were
 export function estimateJaccardSimilarity(sig1: number[], sig2: number[]): number {
   if (sig1.length !== sig2.length) throw new Error("Signatures must have equal length");
   let matches = 0;
@@ -91,7 +86,7 @@ export function estimateJaccardSimilarity(sig1: number[], sig2: number[]): numbe
   return matches / sig1.length;
 }
 
-/** Exact Jaccard similarity between two shingle sets */
+// Compare the original texts word-by-word for perfect accuracy
 export function exactJaccardSimilarity(a: Set<string>, b: Set<string>): number {
   let intersection = 0;
   for (const item of a) {
@@ -101,7 +96,9 @@ export function exactJaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : intersection / union;
 }
 
-// ─── Standalone MinHash retrieval ────────────────────────────
+// ======================================
+// Standalone MinHash retrieval workflow
+// ======================================
 
 export interface MinHashResult {
   docId: number;
@@ -142,7 +139,9 @@ export function retrieveByMinHash(
   };
 }
 
-// ─── LSH Banding (Approximate Retrieval with optimized tuning) ─────────────────────
+// ======================================
+// LSH Banding retrieval workflow
+// ======================================
 
 export interface LSHBandedIndex {
   hashFunctions: HashFunction[];
@@ -152,16 +151,12 @@ export interface LSHBandedIndex {
   bandBuckets: Map<string, Set<number>>[];
 }
 
-/**
- * Build LSH banding index with adaptive parameters
- * More bands = more sensitive to small differences, better precision
- * Rows per band = how many signature values per band (inversely related to bands)
- */
+// Build bucket groups (bands) so we don't have to compare a query against everything
 export function buildLSHIndex(
   chunks: Array<{ id: number; text: string }>,
   numHashes = 128,
-  bands = 32,  // Increased from 20 for better sensitivity
-  rows = 4     // Adjusted from 5 for better tuning
+  bands = 32,
+  rows = 4
 ): LSHBandedIndex {
   const hashFunctions = generateHashFunctions(numHashes);
 
@@ -193,7 +188,7 @@ export interface LSHBandedResult {
   isCandidateFromLSH: boolean;
 }
 
-/** Query the LSH banding index with optimized scoring */
+// Find matching documents by only looking at candidates in the same buckets
 export function lshRetrieve(
   query: string,
   lshIndex: LSHBandedIndex,

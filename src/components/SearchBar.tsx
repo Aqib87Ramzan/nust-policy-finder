@@ -1,3 +1,4 @@
+// Project source file for search bar.
 import { Search } from "lucide-react";
 
 interface SearchBarProps {

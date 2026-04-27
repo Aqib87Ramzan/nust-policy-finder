@@ -1,3 +1,4 @@
+// Project source file for compare panel.
 import { ugChunks, type Chunk } from "@/data/Ugchunk";
 import type { LSHBandedResult, MinHashResult } from "@/lib/minhash";
 import type { TFIDFResult } from "@/lib/tfidf";

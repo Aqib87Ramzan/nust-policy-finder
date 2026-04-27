@@ -1,3 +1,4 @@
+// Playwright configuration for end-to-end browser tests.
 import { createLovableConfig } from "lovable-agent-playwright-config/config";
 
 export default createLovableConfig({

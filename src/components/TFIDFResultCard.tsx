@@ -1,3 +1,4 @@
+// Project source file for tfidfresult card.
 import type { TFIDFResult } from "@/lib/tfidf";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";

@@ -1,3 +1,4 @@
+// Project source file for sim hash result card.
 import type { SimHashResult } from "@/lib/simhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";

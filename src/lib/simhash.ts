@@ -1,10 +1,10 @@
 /**
- * SimHash Implementation — near-duplicate detection via optimized fingerprinting.
- * Enhanced with better bit mixing, adaptive thresholds, and term frequency weighting
+ * Generates a 64-bit digital fingerprint for documents to quickly find near-duplicates.
+ * Documents with similar content will have similar fingerprints (low Hamming distance).
  */
 import { preprocessText } from './textPreprocessing';
 
-/** Improved 64-bit hash with better distribution using murmur-like mixing */
+// A fast math formula to thoroughly mix a string's characters into a number
 function hash64(token: string): [number, number] {
   let h1 = 0x9e3779b1;
   let h2 = 0x85ebca6b;
@@ -17,7 +17,7 @@ function hash64(token: string): [number, number] {
     h3 = Math.imul(h3 ^ c, 0x27d4eb2d) >>> 0;
   }
 
-  // Final mixing
+  // Final mixing step
   h1 ^= h1 >>> 16; h1 = Math.imul(h1, 0x85ebca6b) >>> 0;
   h2 ^= h2 >>> 16; h2 = Math.imul(h2, 0xc2b2ae35) >>> 0;
   h3 ^= h3 >>> 16; h3 = Math.imul(h3, 0x27d4eb2d) >>> 0;
@@ -28,10 +28,8 @@ function hash64(token: string): [number, number] {
   return [hi, lo];
 }
 
-/** Compute 64-bit SimHash with term frequency weighting for better discrimination */
+// Calculate the final 64-bit fingerprint for a document
 export function computeSimHash(text: string, useShingles: boolean = true): [number, number] {
-  // If useShingles is true, we compute shingles like MinHash to capture phrase structures
-  // Otherwise we just compute based on raw unigram tokens
   let tokens: string[] = [];
   if (useShingles) {
     const rawTokens = preprocessText(text);
@@ -48,20 +46,19 @@ export function computeSimHash(text: string, useShingles: boolean = true): [numb
   
   const v = new Float64Array(64);
 
-    const freq = new Map<string, number>();
+  const freq = new Map<string, number>();
   for (const t of tokens) {
     freq.set(t, (freq.get(t) || 0) + 1);
   }
 
-  // Apply inverse term weighting for better discrimination
-  // More common terms within document get lower weight
+  // Make rarer words pull more weight when forming the fingerprint
   const maxFreq = Math.max(...Array.from(freq.values()));
   
   for (const [token, count] of freq) {
     const [hi, lo] = hash64(token);
-    // Weight inversely with frequency: rare terms in doc get higher weight
     const weight = count / maxFreq;
     
+    // Add weights to our array if the bit is 1, subtract if the bit is 0
     for (let i = 0; i < 32; i++) {
       v[i] += (lo & (1 << i)) !== 0 ? weight : -weight;
     }
@@ -70,6 +67,7 @@ export function computeSimHash(text: string, useShingles: boolean = true): [numb
     }
   }
 
+  // Collapse the weighted array back down into simple 1s and 0s
   let lo = 0;
   let hi = 0;
   for (let i = 0; i < 32; i++) {
@@ -81,14 +79,14 @@ export function computeSimHash(text: string, useShingles: boolean = true): [numb
   return [hi >>> 0, lo >>> 0];
 }
 
-/** Optimized popcount using bit manipulation */
+// Quickly counts how many "1" bits are in a number
 function popcount32(x: number): number {
   x = x - ((x >>> 1) & 0x55555555);
   x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
   return (((x + (x >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
 }
 
-/** Hamming distance between two 64-bit SimHash values */
+// Compare two fingerprints: lower number means they are more similar
 export function hammingDistance(hash1: [number, number], hash2: [number, number]): number {
   return popcount32((hash1[0] ^ hash2[0]) >>> 0) + popcount32((hash1[1] ^ hash2[1]) >>> 0);
 }
@@ -99,19 +97,15 @@ export interface SimHashResult {
   similarity: number;
 }
 
-/**
- * Adaptive threshold calculation based on corpus characteristics
- * For policy documents: typical similarity should catch near-duplicates
- */
+// Only allow a certain level of difference depending on how many documents we are searching
 function calculateAdaptiveThreshold(corpusSize: number): number {
-  // Larger corpus → stricter threshold to avoid false positives
-  if (corpusSize < 50) return 32;      // Very permissive for tiny corpora
-  if (corpusSize < 200) return 30;     // Standard threshold for small corpus
-  if (corpusSize < 500) return 28;     // Stricter for medium corpus
-  return 26;                            // Very strict for large corpus
+  if (corpusSize < 50) return 32;       
+  if (corpusSize < 200) return 30;      
+  if (corpusSize < 500) return 28;      
+  return 26;                            
 }
 
-/** Retrieve top-k chunks by Hamming distance with adaptive threshold */
+// Find the closest documents by comparing fingerprints
 export function simHashRetrieve(
   query: string,
   chunks: Array<{ id: number; text: string }>,
@@ -121,7 +115,6 @@ export function simHashRetrieve(
 ): { results: SimHashResult[]; queryTimeMs: number } {
   const start = performance.now();
   
-  // Use adaptive threshold if not specified. Less strict (higher max dist) when using n-grams vs unigrams
   const effectiveThreshold = threshold ?? (useShingles ? 36 : calculateAdaptiveThreshold(chunks.length));
   
   const qHash = computeSimHash(query, useShingles);
@@ -132,7 +125,7 @@ export function simHashRetrieve(
       const dist = hammingDistance(qHash, docHash);
       return { docId: c.id, hammingDist: dist, similarity: 1 - dist / 64 };
     })
-    .filter((r) => r.hammingDist <= effectiveThreshold)  // Apply adaptive threshold
+    .filter((r) => r.hammingDist <= effectiveThreshold)
     .sort((a, b) => a.hammingDist - b.hammingDist)
     .slice(0, k);
 

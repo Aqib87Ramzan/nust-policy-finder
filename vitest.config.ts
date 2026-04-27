@@ -1,3 +1,4 @@
+// Vitest configuration for unit and integration tests.
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";

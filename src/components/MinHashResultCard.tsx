@@ -1,3 +1,4 @@
+// Project source file for min hash result card.
 import type { MinHashResult } from "@/lib/minhash";
 import type { Chunk } from "@/data/Ugchunk";
 import { ugChunks } from "@/data/Ugchunk";

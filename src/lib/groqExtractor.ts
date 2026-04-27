@@ -1,23 +1,15 @@
-/**
- * Answer extraction using Groq API and Llama 3 model
- * Structured prompting: ONLY uses information from retrieved chunks
- * Returns answers with clear organization and no hallucinations
- */
+// Groq API client for synthesizing answers from retrieved handbook chunks
 
-// Use the Vite environment variable VITE_GROQ_API_KEY
-// Trim to remove any accidental whitespace from the .env file
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
 export interface GroqAnswerResult {
   answer: string;
   supportingChunks: any[];
   sources: string[];
 }
 
-/**
- * Build structured context from chunks with clear markers
- * Only the information in these chunks is allowed in the answer
- */
+// Formats chunks into a single readable string to pass as context
 function buildStructuredContext(chunks: any[]): string {
   if (chunks.length === 0) return "NO INFORMATION AVAILABLE";
 
@@ -41,7 +33,7 @@ export async function extractAnswerWithGroq(
   chunks: any[]
 ): Promise<GroqAnswerResult | null> {
   
-  // Check if API key is clearly a placeholder or missing
+  // Verify the API key is configured
   if (!GROQ_API_KEY || GROQ_API_KEY.includes("your_actual_groq_api_key_here")) {
     return {
       answer: "⚠️ **LLM Configuration Error:** Please update `VITE_GROQ_API_KEY` in your `.env` file with a valid Groq API key instead of the placeholder. (Restart the server after updating).",
@@ -50,17 +42,15 @@ export async function extractAnswerWithGroq(
     };
   }
 
-  if (chunks.length === 0) {
-    return null;
-  }
+  if (chunks.length === 0) return null;
 
   try {
-    // Use top 5 chunks as the only source of truth
+    // Limit to the top 5 chunks to avoid API token limits and dilution
     const supportingChunks = chunks.slice(0, 5);
     const context = buildStructuredContext(supportingChunks);
 
-    // Structured prompt: very explicit about constraints
-    const systemPrompt = `You are a helpful, factual assistant answering questions about NUST academic policies. 
+    // Provide the LLM with strict instructions to only use the provided context
+    const systemPrompt = `You are a helpful assistant answering questions about NUST academic policies. 
 You MUST ONLY use information from the provided handbook excerpts. Do not use any external knowledge.
 
 YOUR TASK:

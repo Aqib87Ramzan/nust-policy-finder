@@ -1,3 +1,4 @@
+// Alternative evaluation run with a second scoring setup.
 import { ugChunks } from './src/data/Ugchunk';
 const qs = {
   deferment: [20, 33, 34, 41, 48, 56],

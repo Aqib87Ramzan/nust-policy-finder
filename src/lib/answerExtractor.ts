@@ -1,3 +1,4 @@
+// Project source file for answer extractor.
 import { preprocessText } from "@/lib/textPreprocessing";
 
 function normalizeSentence(sentence: string): string {
